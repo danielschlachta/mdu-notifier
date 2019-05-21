@@ -4,8 +4,8 @@
 #include <QMainWindow>
 #include <QSystemTrayIcon>
 #include <QTime>
-
-#include "filedownloader.h"
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 namespace Ui {
 class MainWindow;
@@ -21,7 +21,9 @@ public:
 
 protected:
     long maxTransmitAge = 10;
+    long maxDelay = 15;
     long transmitInterval = 5;
+    QUrl url;
 
 private:
     Ui::MainWindow *ui;
@@ -31,14 +33,17 @@ private:
     QAction *settingsAction;
     QAction *quitAction;
 
+    QNetworkAccessManager networkAccessManager;
+
     int timerId;
-    FileDownloader *pFileDownloader;
 
     long age = LONG_MAX;
     int interval= 5;
-    int percent = 0;
+    int warn = 0;
     long long usedBytes = 0;
     long long capBytes = 0;
+
+    int percent = 0;
 
     QTime lastReception;
 
@@ -48,7 +53,7 @@ private:
 
 private slots:
     void iconMessageClicked();
-    void parseReply();
+    void parseReply(QNetworkReply* pReply);
 };
 
 #endif // MAINWINDOW_H

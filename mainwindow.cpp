@@ -29,7 +29,11 @@ MainWindow::MainWindow(QWidget *parent) :
     trayIcon = new QSystemTrayIcon(this);
     paintTrayIcon();
 
-    connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::iconMessageClicked);
+    url = QUrl("http://localhost/mdu/mdu-notifier.php");
+
+    connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::iconMessageClicked);   
+    connect(&networkAccessManager,
+            SIGNAL (finished(QNetworkReply*)), this, SLOT (parseReply(QNetworkReply*)));
 
     trayIcon->setContextMenu(trayIconMenu);
     trayIcon->show();
@@ -52,7 +56,7 @@ void MainWindow::iconMessageClicked()
 
 void MainWindow::paintTrayIcon()
 {
-    bool active = age < interval + 10 && lastReception.elapsed() < maxTransmitAge * 1000;
+    bool active = age < interval + maxDelay && lastReception.elapsed() < maxTransmitAge * 1000;
 
     QPixmap pixmap(200, 200);
     pixmap.fill(Qt::transparent);
@@ -66,7 +70,7 @@ void MainWindow::paintTrayIcon()
 
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
-    QRectF outRect(0.0, 20.0, 160.0, 160.0);
+    QRectF outRect(20.0, 20.0, 160.0, 160.0);
     int startAngle = 90 * 16;
 
     if (active)
@@ -106,22 +110,25 @@ void MainWindow::paintTrayIcon()
     trayIcon->setIcon(icon);
 }
 
-void MainWindow::parseReply()
+void MainWindow::parseReply(QNetworkReply* pReply)
 {
-    QStringList data = tr(pFileDownloader->reply.data()).split("/");
+    QByteArray reply(pReply->readAll());
+    pReply->deleteLater();
 
-    if (data.count() == 4)
+    QStringList data = tr(reply.data()).split("/");
+
+    if (data.count() == 5)
     {
         age = data.value(0).toLong();
         interval = data.value(1).toInt();
-        usedBytes = data.value(2).toLongLong();
-        capBytes = data.value(3).toLongLong();
-
+        warn = data.value(2).toInt();
+        usedBytes = data.value(3).toLongLong();
+        capBytes = data.value(4).toLongLong();
         percent = capBytes > 0 ? static_cast<int>(usedBytes * 100 / capBytes) : 0;
 
-        // qDebug("%d%% %ld -> %d, %d", percent, age, interval, lastReception.elapsed());
+        // qDebug("%.2ld sec: %lld %lld int: %d warn %d", age, usedBytes, capBytes, interval, warn);
 
-        lastReception.start();
+        lastReception.restart();
     }
 }
 
@@ -129,10 +136,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == timerId && lastReception.elapsed() >= transmitInterval)
     {
-        QUrl url("http://localhost/mdu/mdu-notifier.php");
-
-        pFileDownloader = new FileDownloader(url, this);
-        connect(pFileDownloader, SIGNAL(downloaded()), this, SLOT(parseReply()));
+        QNetworkRequest request(url);
+        networkAccessManager.get(request);
     }
 
     paintTrayIcon();

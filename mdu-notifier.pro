@@ -25,12 +25,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        filedownloader.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
-        filedownloader.h \
         mainwindow.h
 
 FORMS += \
