@@ -20,7 +20,8 @@ public:
     ~MainWindow() override;
 
 protected:
-    long ageThreshold = 0;
+    long maxTransmitAge = 10;
+    long transmitInterval = 5;
 
 private:
     Ui::MainWindow *ui;
@@ -34,6 +35,7 @@ private:
     FileDownloader *pFileDownloader;
 
     long age = LONG_MAX;
+    int interval= 5;
     int percent = 0;
     long long usedBytes = 0;
     long long capBytes = 0;

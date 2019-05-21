@@ -4,7 +4,6 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QCloseEvent>
-#include <QTextCodec>
 
 #define APPTITLE "Mobile Data Usage"
 
@@ -15,7 +14,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle(tr(APPTITLE));
 
-    ageThreshold = 20;
     lastReception.start();
 
     settingsAction = new QAction(tr("&Settings..."), this);
@@ -36,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
     trayIcon->setContextMenu(trayIconMenu);
     trayIcon->show();
 
-    timerId = startTimer(5000);
+    timerId = startTimer(1000);
 }
 
 MainWindow::~MainWindow()
@@ -54,7 +52,7 @@ void MainWindow::iconMessageClicked()
 
 void MainWindow::paintTrayIcon()
 {
-    bool active = age <= ageThreshold && lastReception.elapsed() < ageThreshold * 1000;
+    bool active = age < interval + 10 && lastReception.elapsed() < maxTransmitAge * 1000;
 
     QPixmap pixmap(200, 200);
     pixmap.fill(Qt::transparent);
@@ -112,13 +110,16 @@ void MainWindow::parseReply()
 {
     QStringList data = tr(pFileDownloader->reply.data()).split("/");
 
-    if (data.count() == 3)
+    if (data.count() == 4)
     {
         age = data.value(0).toLong();
-        usedBytes = data.value(1).toLongLong();
-        capBytes = data.value(2).toLongLong();
+        interval = data.value(1).toInt();
+        usedBytes = data.value(2).toLongLong();
+        capBytes = data.value(3).toLongLong();
 
         percent = capBytes > 0 ? static_cast<int>(usedBytes * 100 / capBytes) : 0;
+
+        // qDebug("%d%% %ld -> %d, %d", percent, age, interval, lastReception.elapsed());
 
         lastReception.start();
     }
@@ -126,15 +127,15 @@ void MainWindow::parseReply()
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-    if (event->timerId() == timerId)
+    if (event->timerId() == timerId && lastReception.elapsed() >= transmitInterval)
     {
-        paintTrayIcon();
-
         QUrl url("http://localhost/mdu/mdu-notifier.php");
 
         pFileDownloader = new FileDownloader(url, this);
         connect(pFileDownloader, SIGNAL(downloaded()), this, SLOT(parseReply()));
     }
+
+    paintTrayIcon();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
