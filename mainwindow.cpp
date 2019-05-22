@@ -131,6 +131,7 @@ void MainWindow::paintTrayIcon()
     if (active && capBytes > 0
             && (capBytes - usedBytes) * 100 < capBytes * warn
             && settings->value("captime", 0).toInt() < capTime
+            && show > 0
             && (messageShown.elapsed() == 0 || messageShown.elapsed() >= show * 1000 * 60))
     {
         QString msg;
