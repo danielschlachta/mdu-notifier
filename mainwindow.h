@@ -23,7 +23,8 @@ protected:
     long maxTransmitAge = 10;
     long maxDelay = 15;
     long transmitInterval = 5;
-    QUrl url;
+
+    QString serverUrl = "http://localhost/mdu/";
 
 private:
     Ui::MainWindow *ui;
@@ -54,6 +55,8 @@ private:
 private slots:
     void iconMessageClicked();
     void parseReply(QNetworkReply* pReply);
+    void on_lineEdit_editingFinished();
+    void on_pushButtonClose_clicked();
 };
 
 #endif // MAINWINDOW_H

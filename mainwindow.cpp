@@ -1,9 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QAction>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPainter>
 #include <QCloseEvent>
+#include <QWindow>
 
 #define APPTITLE "Mobile Data Usage"
 
@@ -12,11 +15,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setWindowTitle(tr(APPTITLE));
+
+    ui->lineEdit->setText(serverUrl);
 
     lastReception.start();
 
-    settingsAction = new QAction(tr("&Settings..."), this);
+    settingsAction = new QAction(tr("Preferences..."), this);
     connect(settingsAction, &QAction::triggered, this, &QWidget::showNormal);
 
     quitAction = new QAction(tr("&Quit " APPTITLE), this);
@@ -28,8 +32,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     trayIcon = new QSystemTrayIcon(this);
     paintTrayIcon();
-
-    url = QUrl("http://localhost/mdu/mdu-notifier.php");
 
     connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::iconMessageClicked);   
     connect(&networkAccessManager,
@@ -61,13 +63,11 @@ void MainWindow::paintTrayIcon()
     QPixmap pixmap(200, 200);
     pixmap.fill(Qt::transparent);
 
-    QColor ltGreen(Qt::green);
-    QColor ltGray(160, 160, 160);
-    QColor dkGray(100, 100, 100);
+    QColor ltBlue(0x2c, 0xac, 0xda);
+    QColor ltGray(0xd4, 0xcc, 0xc3);
+    QColor dkGray(0x80, 0x7c, 0x76);
 
     QPainter painter(&pixmap);
-    //painter.setRenderHint(QPainter::Antialiasing);
-
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
     QRectF outRect(20.0, 20.0, 160.0, 160.0);
@@ -91,8 +91,8 @@ void MainWindow::paintTrayIcon()
     {
         int spanAngle = -percent * 360 / 100 * 16;
 
-        painter.setPen(ltGreen);
-        brush.setColor(ltGreen);
+        painter.setPen(ltBlue);
+        brush.setColor(ltBlue);
         painter.setBrush(brush);
         painter.drawPie(outRect, startAngle, spanAngle);
     }
@@ -136,6 +136,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == timerId && lastReception.elapsed() >= transmitInterval)
     {
+        QUrl url = serverUrl + "/mdu-notifier.php";
         QNetworkRequest request(url);
         networkAccessManager.get(request);
     }
@@ -147,4 +148,15 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
+}
+
+
+void MainWindow::on_lineEdit_editingFinished()
+{
+    serverUrl = ui->lineEdit->text();
+}
+
+void MainWindow::on_pushButtonClose_clicked()
+{
+    hide();
 }
