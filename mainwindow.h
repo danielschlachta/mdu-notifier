@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QSystemTrayIcon>
+#include <QSettings>
 #include <QTime>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -24,13 +25,13 @@ protected:
     long maxDelay = 15;
     long transmitInterval = 5;
 
-    QString serverUrl = "http://localhost/mdu/";
-
 private:
     Ui::MainWindow *ui;
     QSystemTrayIcon *trayIcon;
 
     QMenu *trayIconMenu;
+    QAction *status1Action;
+    QAction *status2Action;
     QAction *settingsAction;
     QAction *quitAction;
 
@@ -38,25 +39,36 @@ private:
 
     int timerId;
 
-    long age = LONG_MAX;
+    // shared with QAction
+    long recvDelay = 0;
+    long capTime = 0;
     int interval= 5;
     int warn = 0;
     long long usedBytes = 0;
     long long capBytes = 0;
 
-    int percent = 0;
+    bool active = false;
 
     QTime lastReception;
+    QTime messageShown;
+
+    QSettings *settings;
 
     void paintTrayIcon();
     void timerEvent(QTimerEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
 private slots:
+    void showWindow();
     void iconMessageClicked();
     void parseReply(QNetworkReply* pReply);
-    void on_lineEdit_editingFinished();
+
+
+    void on_lineEditURL_editingFinished();
+    void on_spinBox_show_valueChanged(int arg1);
+    void on_spinBox_hide_valueChanged(int arg1);
     void on_pushButtonClose_clicked();
+    void on_checkBoxSuppress_clicked();
 };
 
 #endif // MAINWINDOW_H

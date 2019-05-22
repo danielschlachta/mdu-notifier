@@ -9,24 +9,37 @@
 #include <QWindow>
 
 #define APPTITLE "Mobile Data Usage"
+#define DEFAULT_URL "http://localhost/mdu"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    settings = new QSettings("mdu-notifier", "mdu-notifier");
+
+    move(settings->value("pos", QPoint(200, 200)).toPoint());
+
     ui->setupUi(this);
+    ui->lineEditURL->setText(settings->value("url", tr(DEFAULT_URL)).toString());
+    ui->spinBox_show->setValue(settings->value("show", 2).toInt());
+    ui->spinBox_hide->setValue(settings->value("hide", 10).toInt());
+    ui->checkBoxSuppress->setCheckState(settings->value("captime", 0).toLongLong() > 0 ?
+                                            Qt::Checked : Qt::Unchecked);
 
-    ui->lineEdit->setText(serverUrl);
-
-    lastReception.start();
+    status1Action = new QAction(tr("..."), this);
+    status1Action->setEnabled(false);
+    status2Action = new QAction(tr("..."), this);
+    status2Action->setEnabled(false);
 
     settingsAction = new QAction(tr("Preferences..."), this);
-    connect(settingsAction, &QAction::triggered, this, &QWidget::showNormal);
+    connect(settingsAction, &QAction::triggered, this, &MainWindow::showWindow);
 
     quitAction = new QAction(tr("&Quit " APPTITLE), this);
     connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
 
     trayIconMenu = new QMenu(this);
+    trayIconMenu->addAction(status1Action);
+    trayIconMenu->addAction(status2Action);
     trayIconMenu->addAction(settingsAction);
     trayIconMenu->addAction(quitAction);
 
@@ -34,12 +47,13 @@ MainWindow::MainWindow(QWidget *parent) :
     paintTrayIcon();
 
     connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::iconMessageClicked);   
-    connect(&networkAccessManager,
-            SIGNAL (finished(QNetworkReply*)), this, SLOT (parseReply(QNetworkReply*)));
-
     trayIcon->setContextMenu(trayIconMenu);
     trayIcon->show();
 
+    connect(&networkAccessManager,
+            SIGNAL (finished(QNetworkReply*)), this, SLOT (parseReply(QNetworkReply*)));
+
+    lastReception.start();
     timerId = startTimer(1000);
 }
 
@@ -47,19 +61,23 @@ MainWindow::~MainWindow()
 {
     killTimer(timerId);
     delete ui;
+    delete settings;
 }
 
 void MainWindow::iconMessageClicked()
 {
-    QMessageBox::information(nullptr, tr("Systray"),
-                             tr("Sorry, I already gave what help I could.\n"
-                                "Maybe you should try asking a human?"));
+    settings->setValue("captime", static_cast<long long>(capTime));
+    ui->checkBoxSuppress->setCheckState(Qt::Checked);
+}
+
+void MainWindow::showWindow()
+{
+    showNormal();
+    raise();
 }
 
 void MainWindow::paintTrayIcon()
 {
-    bool active = age < interval + maxDelay && lastReception.elapsed() < maxTransmitAge * 1000;
-
     QPixmap pixmap(200, 200);
     pixmap.fill(Qt::transparent);
 
@@ -71,7 +89,6 @@ void MainWindow::paintTrayIcon()
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
     QRectF outRect(20.0, 20.0, 160.0, 160.0);
-    int startAngle = 90 * 16;
 
     if (active)
     {
@@ -85,16 +102,16 @@ void MainWindow::paintTrayIcon()
         brush.setColor(dkGray);
         painter.setBrush(brush);
     }
-    painter.drawPie(outRect, startAngle, 360 * 16);
+    painter.drawPie(outRect, 90 * 16, 360 * 16);
+
+    long long percent = capBytes > 0 ? usedBytes * 100 / capBytes : 0;
 
     if (percent > 0 && active)
     {
-        int spanAngle = -percent * 360 / 100 * 16;
-
         painter.setPen(ltBlue);
         brush.setColor(ltBlue);
         painter.setBrush(brush);
-        painter.drawPie(outRect, startAngle, spanAngle);
+        painter.drawPie(outRect, 90 * 16, static_cast<int>(-percent * 360 / 100 * 16));
     }
 
     double inRad = 50.0;
@@ -104,10 +121,29 @@ void MainWindow::paintTrayIcon()
 
     brush.setColor(QColor(70, 70, 70));
     painter.setBrush(brush);
-    painter.drawPie(inRect, startAngle, 360 * 16);
+    painter.drawPie(inRect, 90 * 16, 360 * 16);
 
     QIcon icon(pixmap);
     trayIcon->setIcon(icon);
+
+    int show = settings->value("show", 0).toInt();
+
+    if (active && capBytes > 0
+            && (capBytes - usedBytes) * 100 < capBytes * warn
+            && settings->value("captime", 0).toInt() < capTime
+            && (messageShown.elapsed() == 0 || messageShown.elapsed() >= 12000))// show * 1000 * 60))
+    {
+        QString msg;
+        QTextStream stream(&msg);
+        stream << usedBytes / 1024 / 1024 << " MB remaining ("
+               << (capBytes - usedBytes) * 100 / capBytes << "%)" << endl << endl
+               << "This message will appear again in " << show << " minutes unless you click on it.";
+
+        trayIcon->showMessage(tr("Mobile data is running low"), msg, icon,
+                              settings->value("hide", 0).toInt() * 1000);
+
+        messageShown.start();
+    }
 }
 
 void MainWindow::parseReply(QNetworkReply* pReply)
@@ -117,16 +153,16 @@ void MainWindow::parseReply(QNetworkReply* pReply)
 
     QStringList data = tr(reply.data()).split("/");
 
-    if (data.count() == 5)
+    if (data.count() == 6)
     {
-        age = data.value(0).toLong();
-        interval = data.value(1).toInt();
-        warn = data.value(2).toInt();
-        usedBytes = data.value(3).toLongLong();
-        capBytes = data.value(4).toLongLong();
-        percent = capBytes > 0 ? static_cast<int>(usedBytes * 100 / capBytes) : 0;
+        recvDelay = data.value(0).toLong();
+        capTime = data.value(1).toLong();
+        interval = data.value(2).toInt();
+        warn = data.value(3).toInt();
+        usedBytes = data.value(4).toLongLong();
+        capBytes = data.value(5).toLongLong();
 
-        // qDebug("%.2ld sec: %lld %lld int: %d warn %d", age, usedBytes, capBytes, interval, warn);
+        active = recvDelay < interval + maxDelay && lastReception.elapsed() < maxTransmitAge * 1000;
 
         lastReception.restart();
     }
@@ -134,14 +170,34 @@ void MainWindow::parseReply(QNetworkReply* pReply)
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
+    settings->setValue("pos", pos());
+
     if (event->timerId() == timerId && lastReception.elapsed() >= transmitInterval)
     {
-        QUrl url = serverUrl + "/mdu-notifier.php";
+        QUrl url = settings->value("url", DEFAULT_URL).toString() + "/mdu-notifier.php";
         QNetworkRequest request(url);
         networkAccessManager.get(request);
     }
 
+    active = recvDelay < interval + maxDelay && lastReception.elapsed() < maxTransmitAge * 1000;
+
     paintTrayIcon();
+
+    QString status1;
+    QTextStream stream1(&status1);
+    stream1 << usedBytes / 1024 / 1024 << " MB of " << capBytes / 1024 / 1024 << " MB";
+
+    QString status2;
+    QTextStream stream2(&status2);
+
+    stream2 << (capBytes > usedBytes ? capBytes / 1024 / 1024 - usedBytes / 1024 / 1024 : 0) << " MB left";
+    if (capBytes > 0)
+        stream2 << " (" << (capBytes - usedBytes) * 100 / capBytes << "%)";
+
+    status1Action->setVisible(true);
+    status1Action->setText(status1);
+    status2Action->setVisible(true);
+    status2Action->setText(status2);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -150,13 +206,33 @@ void MainWindow::closeEvent(QCloseEvent *event)
     event->ignore();
 }
 
-
-void MainWindow::on_lineEdit_editingFinished()
+void MainWindow::on_lineEditURL_editingFinished()
 {
-    serverUrl = ui->lineEdit->text();
+    settings->setValue("url", ui->lineEditURL->text());
+    lastReception.setHMS(1, 0, 0);
+}
+
+void MainWindow::on_spinBox_show_valueChanged(int arg1)
+{
+    settings->setValue("show", arg1);
+}
+
+void MainWindow::on_spinBox_hide_valueChanged(int arg1)
+{
+    settings->setValue("hide", arg1);
+}
+
+
+void MainWindow::on_checkBoxSuppress_clicked()
+{
+    if (ui->checkBoxSuppress->isChecked())
+        settings->setValue("captime", static_cast<long long>(capTime));
+    else
+        settings->setValue("captime", 0);
 }
 
 void MainWindow::on_pushButtonClose_clicked()
 {
     hide();
 }
+
