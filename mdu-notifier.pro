@@ -42,3 +42,7 @@ else: unix:!android: target.path = ~/bin
 
 RESOURCES += \
     mdu-notifier.qrc
+
+DISTFILES += \
+    mdu-notifier.desktop \
+    mdu-notifier.png

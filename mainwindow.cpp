@@ -76,6 +76,11 @@ void MainWindow::showWindow()
     raise();
 }
 
+long long MainWindow::inMegabytes(long long mb)
+{
+    return displayMetric ? mb / 1000 / 1000 : mb / 1024 / 1024;
+}
+
 void MainWindow::paintTrayIcon()
 {
     QPixmap pixmap(200, 200);
@@ -136,7 +141,7 @@ void MainWindow::paintTrayIcon()
     {
         QString msg;
         QTextStream stream(&msg);
-        stream << usedBytes / 1024 / 1024 << " MB remaining ("
+        stream << inMegabytes(usedBytes) << " MB remaining ("
                << (capBytes - usedBytes) * 100 / capBytes << "%)" << endl << endl
                << "This message will appear again in " << show << " minutes unless you click on it.";
 
@@ -154,14 +159,15 @@ void MainWindow::parseReply(QNetworkReply* pReply)
 
     QStringList data = tr(reply.data()).split("/");
 
-    if (data.count() == 6)
+    if (data.count() == 7)
     {
         recvDelay = data.value(0).toLong();
         capTime = data.value(1).toLong();
         interval = data.value(2).toInt();
         warn = data.value(3).toInt();
-        usedBytes = data.value(4).toLongLong();
-        capBytes = data.value(5).toLongLong();
+        displayMetric = data.value(4).toInt() == 1;
+        usedBytes = data.value(5).toLongLong();
+        capBytes = data.value(6).toLongLong();
 
         active = recvDelay < interval + maxDelay && lastReception.elapsed() < maxTransmitAge * 1000;
 
@@ -186,12 +192,12 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
     QString status1;
     QTextStream stream1(&status1);
-    stream1 << usedBytes / 1024 / 1024 << " MB of " << capBytes / 1024 / 1024 << " MB";
+    stream1 << inMegabytes(usedBytes) << " MB of " << inMegabytes(capBytes) << " MB";
 
     QString status2;
     QTextStream stream2(&status2);
 
-    stream2 << (capBytes > usedBytes ? capBytes / 1024 / 1024 - usedBytes / 1024 / 1024 : 0) << " MB left";
+    stream2 << (capBytes > usedBytes ? inMegabytes(capBytes)  - inMegabytes(usedBytes) : 0) << " MB left";
     if (capBytes > 0)
         stream2 << " (" << (capBytes - usedBytes) * 100 / capBytes << "%)";
 

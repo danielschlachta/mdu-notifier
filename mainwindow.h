@@ -40,10 +40,11 @@ private:
     int timerId;
 
     // shared with QAction
-    long recvDelay = 0;
+    long recvDelay = LONG_MAX;
     long capTime = 0;
     int interval= 5;
     int warn = 0;
+    bool displayMetric = false;
     long long usedBytes = 0;
     long long capBytes = 0;
 
@@ -53,6 +54,8 @@ private:
     QTime messageShown;
 
     QSettings *settings;
+
+    long long inMegabytes(long long mb);
 
     void paintTrayIcon();
     void timerEvent(QTimerEvent *event) override;
