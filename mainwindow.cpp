@@ -64,6 +64,11 @@ MainWindow::~MainWindow()
     delete settings;
 }
 
+long long MainWindow::inMegabytes(long long mb)
+{
+    return displayMetric ? mb / 1000 / 1000 : mb / 1024 / 1024;
+}
+
 void MainWindow::iconMessageClicked()
 {
     settings->setValue("captime", static_cast<long long>(capTime));
@@ -74,11 +79,6 @@ void MainWindow::showWindow()
 {
     showNormal();
     raise();
-}
-
-long long MainWindow::inMegabytes(long long mb)
-{
-    return displayMetric ? mb / 1000 / 1000 : mb / 1024 / 1024;
 }
 
 void MainWindow::paintTrayIcon()
@@ -165,7 +165,7 @@ void MainWindow::parseReply(QNetworkReply* pReply)
         capTime = data.value(1).toLong();
         interval = data.value(2).toInt();
         warn = data.value(3).toInt();
-        displayMetric = data.value(4).toInt() == 1;
+        displayMetric = data.value(4).toInt() == 0;
         usedBytes = data.value(5).toLongLong();
         capBytes = data.value(6).toLongLong();
 
