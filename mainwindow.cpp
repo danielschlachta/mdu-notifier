@@ -7,6 +7,7 @@
 #include <QPainter>
 #include <QCloseEvent>
 #include <QWindow>
+#include <QDesktopServices>
 
 #define APPTITLE "Mobile Data Usage"
 #define DEFAULT_URL "http://localhost/mdu"
@@ -243,3 +244,8 @@ void MainWindow::on_pushButtonClose_clicked()
     hide();
 }
 
+
+void MainWindow::on_pushButtonVisit_clicked()
+{
+    QDesktopServices::openUrl(QUrl(ui->lineEditURL->text()));
+}

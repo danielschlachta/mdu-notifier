@@ -72,6 +72,7 @@ private slots:
     void on_spinBox_hide_valueChanged(int arg1);
     void on_pushButtonClose_clicked();
     void on_checkBoxSuppress_clicked();
+    void on_pushButtonVisit_clicked();
 };
 
 #endif // MAINWINDOW_H

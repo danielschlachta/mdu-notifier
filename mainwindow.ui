@@ -68,11 +68,11 @@
     <property name="title">
      <string>Location</string>
     </property>
-    <widget class="QWidget" name="layoutWidget1">
+    <widget class="QWidget" name="">
      <property name="geometry">
       <rect>
-       <x>11</x>
-       <y>31</y>
+       <x>12</x>
+       <y>32</y>
        <width>361</width>
        <height>27</height>
       </rect>
@@ -87,6 +87,13 @@
       </item>
       <item>
        <widget class="QLineEdit" name="lineEditURL"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonVisit">
+        <property name="text">
+         <string>Visit</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
