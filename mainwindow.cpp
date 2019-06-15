@@ -134,7 +134,7 @@ void MainWindow::paintTrayIcon()
 
     int show = settings->value("show", 0).toInt();
 
-    if (active && capBytes > 0
+    if (active && capBytes > 0 && warn > 0
             && (capBytes - usedBytes) * 100 / capBytes <= warn
             && settings->value("captime", 0).toInt() < capTime
             && show > 0
@@ -144,7 +144,8 @@ void MainWindow::paintTrayIcon()
         QTextStream stream(&msg);
         stream << inMegabytes(capBytes - usedBytes) << " MB remaining ("
                << (capBytes - usedBytes) * 100 / capBytes << "%)" << endl << endl
-               << "This message will appear again in " << show << " minutes unless you click on it.";
+               << "This message will appear again in "
+               << show << (show > 1 ? " minutes" : " minute") << " unless you click on it.";
 
         trayIcon->showMessage(tr("Mobile data is running low"), msg, icon,
                               settings->value("hide", 0).toInt() * 1000);
