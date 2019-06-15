@@ -135,14 +135,14 @@ void MainWindow::paintTrayIcon()
     int show = settings->value("show", 0).toInt();
 
     if (active && capBytes > 0
-            && (capBytes - usedBytes) * 100 < capBytes * warn
+            && (capBytes - usedBytes) * 100 / capBytes <= warn
             && settings->value("captime", 0).toInt() < capTime
             && show > 0
             && (messageShown.elapsed() == 0 || messageShown.elapsed() >= show * 1000 * 60))
     {
         QString msg;
         QTextStream stream(&msg);
-        stream << inMegabytes(usedBytes) << " MB remaining ("
+        stream << inMegabytes(capBytes - usedBytes) << " MB remaining ("
                << (capBytes - usedBytes) * 100 / capBytes << "%)" << endl << endl
                << "This message will appear again in " << show << " minutes unless you click on it.";
 
