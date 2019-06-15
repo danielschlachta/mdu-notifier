@@ -134,8 +134,9 @@ void MainWindow::paintTrayIcon()
 
     int show = settings->value("show", 0).toInt();
 
-    if (active && capBytes > 0 && warn > 0
-            && (capBytes - usedBytes) * 100 / capBytes <= warn
+    if (active &&
+            capBytes > 0 && warn > 0
+            && (capBytes - usedBytes) * 100 / capBytes <= warn - 1
             && settings->value("captime", 0).toInt() < capTime
             && show > 0
             && (messageShown.elapsed() == 0 || messageShown.elapsed() >= show * 1000 * 60))
