@@ -202,8 +202,6 @@ void MainWindow::parseReply(QNetworkReply* pReply)
     {
         ServerData *newData = new ServerData;
 
-        qDebug("parseRep");
-
         newData->timeElapsed = data.value(0).toLong();
         newData->capTime = data.value(1).toLong();
         newData->transmitInterval = data.value(2).toInt();

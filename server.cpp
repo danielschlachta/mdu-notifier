@@ -88,8 +88,6 @@ void Server::tcpReady()
 
 void Server::tcpError(QAbstractSocket::SocketError error)
 {
-    qDebug("Socket error: %s", tcpSocket.errorString().toLocal8Bit().data());
-
     if (error != QAbstractSocket::RemoteHostClosedError)
     {
         hasError = true;
