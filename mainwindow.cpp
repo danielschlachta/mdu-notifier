@@ -9,6 +9,8 @@
 #include <QWindow>
 #include <QDesktopServices>
 
+#include "warndialog.h"
+
 #define APPTITLE "Mobile Data Usage"
 #define DEFAULT_URL "http://localhost/mdu"
 
@@ -74,6 +76,11 @@ void MainWindow::iconMessageClicked()
 {
     settings->setValue("captime", static_cast<long long>(capTime));
     ui->checkBoxSuppress->setCheckState(Qt::Checked);
+}
+
+void MainWindow::dismissClicked()
+{
+    iconMessageClicked();
 }
 
 void MainWindow::showWindow()
@@ -144,13 +151,24 @@ void MainWindow::paintTrayIcon()
         QString msg;
         QTextStream stream(&msg);
         stream << inMegabytes(capBytes - usedBytes) << " MB remaining ("
-               << (capBytes - usedBytes) * 100 / capBytes << "%)" << endl << endl
-               << "This message will appear again in "
-               << show << (show > 1 ? " minutes" : " minute") << " unless you click on it.";
+               << (capBytes - usedBytes) * 100 / capBytes << "%)" << endl
+               << endl << "This message will appear again in "
+               << show << (show > 1 ? " minutes" : " minute");
+
+#ifdef Q_OS_WIN
+        stream << " unless you click 'Dismiss'.";
+
+        WarnDialog *warnDialog = new WarnDialog(this, msg, settings->value("hide", 0).toInt() * 1000);
+        connect(warnDialog, &WarnDialog::dismissed, this, &MainWindow::dismissClicked);
+
+        warnDialog->show();
+        warnDialog->setModal(false);
+#else
+        stream << " unless you click on it.";
 
         trayIcon->showMessage(tr("Mobile data is running low"), msg, icon,
                               settings->value("hide", 0).toInt() * 1000);
-
+#endif
         messageShown.start();
     }
 }
@@ -246,8 +264,9 @@ void MainWindow::on_pushButtonClose_clicked()
     hide();
 }
 
-
 void MainWindow::on_pushButtonVisit_clicked()
 {
     QDesktopServices::openUrl(QUrl(ui->lineEditURL->text()));
 }
+
+

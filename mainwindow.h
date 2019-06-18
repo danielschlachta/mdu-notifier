@@ -63,9 +63,11 @@ private:
 
 private slots:
     void showWindow();
-    void iconMessageClicked();
-    void parseReply(QNetworkReply* pReply);
 
+    void iconMessageClicked();
+    void dismissClicked();
+
+    void parseReply(QNetworkReply* pReply);
 
     void on_lineEditURL_editingFinished();
     void on_spinBox_show_valueChanged(int arg1);
@@ -73,6 +75,7 @@ private slots:
     void on_pushButtonClose_clicked();
     void on_checkBoxSuppress_clicked();
     void on_pushButtonVisit_clicked();
+
 };
 
 #endif // MAINWINDOW_H

@@ -26,10 +26,12 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+        warndialog.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+        warndialog.h
 
 FORMS += \
         mainwindow.ui
