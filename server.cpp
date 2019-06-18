@@ -64,6 +64,9 @@ void Server::tcpReady()
 
     QStringList request = data.value(1).split("&");
 
+    if (request.value(0) != "/app.php?s=hoot")
+        return;
+
     ServerData serverData;
 
     serverData.timeElapsed = lastReception.elapsed() / 1000;
