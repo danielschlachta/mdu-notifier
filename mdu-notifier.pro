@@ -27,10 +27,14 @@ CONFIG += c++11
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
+        runguard.cpp \
+        server.cpp \
         warndialog.cpp
 
 HEADERS += \
         mainwindow.h \
+        runguard.h \
+        server.h \
         warndialog.h
 
 FORMS += \

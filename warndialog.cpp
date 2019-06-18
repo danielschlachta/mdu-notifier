@@ -3,10 +3,10 @@
 
 #include "warndialog.h"
 
-WarnDialog::WarnDialog(QWidget *parent, QString message, long timeout) :
+WarnDialog::WarnDialog(QWidget *parent, QString message, int timeout) :
     QDialog(parent, Qt::WindowTitleHint | Qt::WindowCloseButtonHint)
 {
-    label1 = new QLabel(tr("Mobile data is running low.\n"));
+    label1 = new QLabel(tr("Mobile data is running low\n"));
     label2 = new QLabel(message + tr("\n"));
 
     okButton = new QPushButton(tr("&Ok"));

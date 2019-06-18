@@ -13,7 +13,7 @@ class WarnDialog : public QDialog
     Q_OBJECT
 
 public:
-    WarnDialog(QWidget *parent, QString message, long timeout);
+    WarnDialog(QWidget *parent, QString message, int timeout);
 
 signals:
     void dismissed();

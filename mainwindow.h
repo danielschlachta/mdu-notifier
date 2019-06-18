@@ -8,6 +8,8 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+#include "server.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -37,18 +39,11 @@ private:
 
     QNetworkAccessManager networkAccessManager;
 
+    Server server;
+
     int timerId;
 
-    // shared with QAction
-    long recvDelay = LONG_MAX;
-    long capTime = 0;
-    int interval= 5;
-    int warn = 0;
-    bool displayMetric = false;
-    long long usedBytes = 0;
-    long long capBytes = 0;
-
-    bool active = false;
+    ServerData *serverData;
 
     QTime lastReception;
     QTime messageShown;
@@ -69,6 +64,9 @@ private slots:
 
     void parseReply(QNetworkReply* pReply);
 
+    void serverError(QString message);
+    void dataReceived(ServerData data);
+
     void on_lineEditURL_editingFinished();
     void on_spinBox_show_valueChanged(int arg1);
     void on_spinBox_hide_valueChanged(int arg1);
@@ -76,6 +74,7 @@ private slots:
     void on_checkBoxSuppress_clicked();
     void on_pushButtonVisit_clicked();
 
+    void on_checkBoxBuiltin_clicked();
 };
 
 #endif // MAINWINDOW_H
