@@ -28,15 +28,12 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
         runguard.cpp \
-        secretdialog.cpp \
         server.cpp \
         warndialog.cpp
 
 HEADERS += \
-        common.h \
         mainwindow.h \
         runguard.h \
-        secretdialog.h \
         server.h \
         warndialog.h
 
@@ -54,4 +51,7 @@ RESOURCES += \
 
 DISTFILES += \
     mdu-notifier.desktop \
-    mdu-notifier.png
+    mdu-notifier.png \
+    mdu-notifier.rc
+
+RC_FILE = mdu-notifier.rc
