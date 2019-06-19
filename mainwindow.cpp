@@ -237,8 +237,6 @@ void MainWindow::dataReceived(ServerData data)
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-    settings->setValue("pos", pos());
-
     if (event->timerId() != timerId)
         return;
 
@@ -281,6 +279,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    settings->setValue("pos", pos());
     hide();
     event->ignore();
 }
@@ -311,6 +310,7 @@ void MainWindow::on_checkBoxSuppress_clicked()
 
 void MainWindow::on_pushButtonClose_clicked()
 {
+    settings->setValue("pos", pos());
     hide();
 }
 
