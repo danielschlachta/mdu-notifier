@@ -1,6 +1,7 @@
 #include <QtGui>
 #include <QLayout>
 
+#include "common.h"
 #include "warndialog.h"
 
 WarnDialog::WarnDialog(QWidget *parent, QString message, int timeout) :
@@ -27,7 +28,7 @@ WarnDialog::WarnDialog(QWidget *parent, QString message, int timeout) :
     mainLayout->addLayout(bottomLayout);
     setLayout(mainLayout);
 
-    setWindowTitle(tr("Mobile data usage"));
+    setWindowTitle(tr(APPTITLE));
     setFixedHeight(sizeHint().height());
 
     timerId = startTimer(timeout);

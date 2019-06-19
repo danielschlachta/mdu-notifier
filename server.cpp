@@ -17,8 +17,10 @@ Server::~Server()
     tcpSocket.disconnectFromHost();
 }
 
-void Server::open(int port)
+void Server::open(int port, QString secret)
 {
+    serverSecret = secret;
+
     if (isOpen)
         return;
 
@@ -60,15 +62,22 @@ void Server::tcpReady()
     QStringList data = tr(tcpSocket.read(tcpSocket.bytesAvailable())).split(" ");
 
     if (data.size() < 1)
+    {
+        tcpSocket.close();
         return;
+    }
 
     QStringList request = data.value(1).split("&");
 
-    if (request.value(0) != "/app.php?s=hoot")
+    if (request.value(0) != "/app.php?s=" + serverSecret)
+    {
+        tcpSocket.close();
         return;
+    }
 
     ServerData serverData;
 
+    serverData.isActive = false;
     serverData.timeElapsed = lastReception.elapsed() / 1000;
     serverData.usedBytes = getValue(request, 1, "rx") - getValue(request, 2, "rx")
             + getValue(request, 1, "tx") - getValue(request, 2, "tx") + getValue(request, 3, "tx");
@@ -80,7 +89,6 @@ void Server::tcpReady()
 
     lastReception.restart();
 
-    tcpSocket.flush();
     tcpSocket.close();
 
     emit dataReceived(serverData);

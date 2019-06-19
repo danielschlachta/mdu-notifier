@@ -7,6 +7,7 @@
 
 struct ServerData
 {
+    bool isActive; // set by recipient
     long timeElapsed;
 
     bool displayIEC;
@@ -30,11 +31,12 @@ public:
     bool hasError = false;
     QTime lastReception;
 
-    void open(int port);
+    void open(int port, QString secret);
     void close();
 
 private:
     QTcpSocket tcpSocket;
+    QString serverSecret;
 
 signals:
     void serverError(QString message);

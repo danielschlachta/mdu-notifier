@@ -28,12 +28,15 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
         runguard.cpp \
+        secretdialog.cpp \
         server.cpp \
         warndialog.cpp
 
 HEADERS += \
+        common.h \
         mainwindow.h \
         runguard.h \
+        secretdialog.h \
         server.h \
         warndialog.h
 

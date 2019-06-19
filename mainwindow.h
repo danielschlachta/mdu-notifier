@@ -43,7 +43,7 @@ private:
 
     int timerId;
 
-    ServerData *serverData;
+    ServerData *serverData = nullptr;
 
     QTime lastReception;
     QTime messageShown;
@@ -51,6 +51,7 @@ private:
     QSettings *settings;
 
     long long inMegabytes(long long mb);
+    void setActive();
 
     void paintTrayIcon();
     void timerEvent(QTimerEvent *event) override;
@@ -61,6 +62,8 @@ private slots:
 
     void iconMessageClicked();
     void dismissClicked();
+
+    void secretChanged(QString secret);
 
     void parseReply(QNetworkReply* pReply);
 
@@ -75,6 +78,7 @@ private slots:
     void on_pushButtonVisit_clicked();
 
     void on_checkBoxBuiltin_clicked();
+    void on_pushButtonSecret_clicked();
 };
 
 #endif // MAINWINDOW_H

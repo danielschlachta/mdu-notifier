@@ -9,9 +9,10 @@
 #include <QWindow>
 #include <QDesktopServices>
 
+#include "common.h"
 #include "warndialog.h"
+#include "secretdialog.h"
 
-#define APPTITLE "Mobile Data Usage"
 #define DEFAULT_URL "http://localhost/mdu"
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -32,10 +33,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     on_checkBoxBuiltin_clicked();
 
-    status1Action = new QAction(tr("..."), this);
+    status1Action = new QAction(this);
     status1Action->setEnabled(false);
-    status2Action = new QAction(tr("..."), this);
+    status1Action->setVisible(false);
+    status2Action = new QAction(this);
     status2Action->setEnabled(false);
+    status2Action->setVisible(false);
 
     settingsAction = new QAction(tr("Preferences..."), this);
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showWindow);
@@ -56,9 +59,6 @@ MainWindow::MainWindow(QWidget *parent) :
     trayIcon->setContextMenu(trayIconMenu);
     trayIcon->show();
 
-    serverData = new ServerData;
-    serverData->timeElapsed = LONG_MAX;
-
     connect(&networkAccessManager,
             SIGNAL(finished(QNetworkReply*)), this, SLOT(parseReply(QNetworkReply*)));
 
@@ -74,12 +74,21 @@ MainWindow::~MainWindow()
     killTimer(timerId);
     delete ui;
     delete settings;
-    delete serverData;
+
+    if (serverData != nullptr)
+        delete serverData;
 }
 
 long long MainWindow::inMegabytes(long long mb)
 {
-    return serverData->displayIEC ? mb / 1024 / 1024 : mb / 1000 / 1000;
+    return serverData == nullptr ? 0 : serverData->displayIEC ? mb / 1024 / 1024 : mb / 1000 / 1000;
+}
+
+void MainWindow::setActive()
+{
+    if (serverData != nullptr)
+        serverData->isActive = serverData->timeElapsed < serverData->transmitInterval + maxDelay
+            && lastReception.elapsed() < maxTransmitAge * 1000;
 }
 
 void MainWindow::iconMessageClicked()
@@ -91,6 +100,11 @@ void MainWindow::iconMessageClicked()
 void MainWindow::dismissClicked()
 {
     iconMessageClicked();
+}
+
+void MainWindow::secretChanged(QString secret)
+{
+    settings->setValue("secret", secret);
 }
 
 void MainWindow::showWindow()
@@ -114,10 +128,7 @@ void MainWindow::paintTrayIcon()
     brush.setStyle(Qt::SolidPattern);
     QRectF outRect(20.0, 20.0, 160.0, 160.0);
 
-    bool active = serverData->timeElapsed < serverData->transmitInterval + maxDelay
-            && (ui->checkBoxBuiltin->isChecked() || lastReception.elapsed() < maxTransmitAge * 1000);
-
-    if (active)
+    if (serverData != nullptr && serverData->isActive)
     {
         painter.setPen(ltGray);
         brush.setColor(ltGray);
@@ -131,15 +142,15 @@ void MainWindow::paintTrayIcon()
     }
     painter.drawPie(outRect, 90 * 16, 360 * 16);
 
-    long long percent = serverData->capBytes > 0 ?
-                serverData->usedBytes * 100 / serverData->capBytes : 0;
+    int percent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
+                static_cast<int>(serverData->usedBytes * 100 / serverData->capBytes) : 0;
 
-    if (percent > 0 && active)
+    if (percent > 0)
     {
         painter.setPen(ltBlue);
         brush.setColor(ltBlue);
         painter.setBrush(brush);
-        painter.drawPie(outRect, 90 * 16, static_cast<int>(-percent * 360 / 100 * 16));
+        painter.drawPie(outRect, 90 * 16, -percent * 360 / 100 * 16);
     }
 
     double inRad = 50.0;
@@ -155,12 +166,12 @@ void MainWindow::paintTrayIcon()
     trayIcon->setIcon(icon);
 
     int show = settings->value("show", 0).toInt();
-    long long remaining = serverData->capBytes - serverData->usedBytes;
+    long long remaining = serverData == nullptr ? 0 : serverData->capBytes - serverData->usedBytes;
 
     if (remaining < 0)
         remaining = 0;
 
-    if (active && serverData->capBytes > 0 && serverData->warningThreshold > 0
+    if (serverData != nullptr && serverData->isActive && serverData->capBytes > 0 && serverData->warningThreshold > 0
             && remaining * 100 / serverData->capBytes <= serverData->warningThreshold - 1
             && settings->value("captime", 0).toInt() < serverData->capTime
             && show > 0
@@ -202,6 +213,7 @@ void MainWindow::parseReply(QNetworkReply* pReply)
     {
         ServerData *newData = new ServerData;
 
+        newData->isActive = false;
         newData->timeElapsed = data.value(0).toLong();
         newData->capTime = data.value(1).toLong();
         newData->transmitInterval = data.value(2).toInt();
@@ -212,15 +224,18 @@ void MainWindow::parseReply(QNetworkReply* pReply)
 
         ServerData *oldData = serverData;
         serverData = newData;
-        delete oldData;
+
+        if (oldData != nullptr)
+            delete oldData;
 
         lastReception.restart();
+        setActive();
     }
 }
 
 void MainWindow::serverError(QString message)
 {
-    QMessageBox::warning(this, tr("Mobile Data Usage"), tr("The built-in server encountered a problem:\n")
+    QMessageBox::warning(this, tr(APPTITLE), tr("The built-in server encountered a problem:\n")
                          + message);
     server.hasError = false;
 }
@@ -232,7 +247,12 @@ void MainWindow::dataReceived(ServerData data)
 
     ServerData *oldData = serverData;
     serverData = newData;
-    delete oldData;
+
+    if (serverData != nullptr)
+        delete oldData;
+
+    lastReception.restart();
+    setActive();
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -243,7 +263,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
     if (ui->checkBoxBuiltin->isChecked())
     {
         if (!server.isOpen && !server.hasError)
-            server.open(ui->spinBoxPort->value());
+            server.open(ui->spinBoxPort->value(), settings->value("secret", "").toString());
     }
     else
     {
@@ -258,23 +278,42 @@ void MainWindow::timerEvent(QTimerEvent *event)
         }
     }
 
+    setActive();
+
     paintTrayIcon();
 
-    QString status1;
-    QTextStream stream1(&status1);
-    stream1 << inMegabytes(serverData->usedBytes) << " MB of " << inMegabytes(serverData->capBytes) << " MB";
+    if (serverData != nullptr && serverData->isActive)
+    {
+        QString status1;
+        QTextStream stream1(&status1);
+        stream1 << inMegabytes(serverData->usedBytes) << " MB";
 
-    QString status2;
-    QTextStream stream2(&status2);
+        if (serverData->capBytes > 0)
+        {
+            stream1 << " of " << inMegabytes(serverData->capBytes) << " MB";
 
-    stream2 << (serverData->capBytes > serverData->usedBytes ?
-                    inMegabytes(serverData->capBytes)  - inMegabytes(serverData->usedBytes) : 0) << " MB left";
+            QString status2;
+            QTextStream stream2(&status2);
 
-    if (serverData->capBytes > 0)
-        stream2 << " (" << (serverData->capBytes - serverData->usedBytes) * 100 / serverData->capBytes << "%)";
+            stream2 << (serverData->capBytes > serverData->usedBytes ?
+                        inMegabytes(serverData->capBytes)  - inMegabytes(serverData->usedBytes) : 0) << " MB left"
+                    << " (" << (serverData->capBytes - serverData->usedBytes) * 100 / serverData->capBytes << "%)";
 
-    status1Action->setText(status1);
-    status2Action->setText(status2);
+            status2Action->setText(status2);
+            status2Action->setVisible(true);
+        }
+        else
+            status2Action->setVisible(false);
+
+        status1Action->setText(status1);
+        status1Action->setVisible(true);
+
+    }
+    else
+    {
+        status1Action->setVisible(false);
+        status2Action->setVisible(false);
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -335,4 +374,11 @@ void MainWindow::on_checkBoxBuiltin_clicked()
         ui->spinBoxPort->setEnabled(true);
         settings->setValue("builtin", false);
     }
+}
+
+void MainWindow::on_pushButtonSecret_clicked()
+{
+    SecretDialog *secretDialog = new SecretDialog(this, settings->value("secret", "").toString());
+    connect(secretDialog, SIGNAL(secretChanged(QString)), this, SLOT(secretChanged(QString)));
+    secretDialog->show();
 }
