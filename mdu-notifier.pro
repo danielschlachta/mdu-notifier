@@ -29,13 +29,15 @@ SOURCES += \
         mainwindow.cpp \
         runguard.cpp \
         server.cpp \
-        warndialog.cpp
+        warndialog.cpp \
+    secretdialog.cpp
 
 HEADERS += \
         mainwindow.h \
         runguard.h \
         server.h \
-        warndialog.h
+        warndialog.h \
+    secretdialog.h
 
 FORMS += \
         mainwindow.ui
