@@ -184,7 +184,7 @@ void MainWindow::paintTrayIcon()
                << endl << "This message will appear again in "
                << show << (show > 1 ? " minutes" : " minute");
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && (QT_VERSION <= 0x050500)
         stream << " unless you click 'Dismiss'.";
 
         WarnDialog *warnDialog = new WarnDialog(this, msg, settings->value("hide", 0).toInt() * 1000 * 60);
