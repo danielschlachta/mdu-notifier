@@ -42,11 +42,11 @@ private:
     Server server;
 
     int timerId;
-
     ServerData *serverData = nullptr;
 
     QTime lastReception;
     QTime messageShown;
+    bool hideBalloon = false;
 
     QSettings *settings;
 

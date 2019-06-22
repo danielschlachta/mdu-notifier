@@ -142,15 +142,15 @@ void MainWindow::paintTrayIcon()
     }
     painter.drawPie(outRect, 90 * 16, 360 * 16);
 
-    int percent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
+    int usedPercent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
                 static_cast<int>(serverData->usedBytes * 100 / serverData->capBytes) : 0;
 
-    if (percent > 0)
+    if (usedPercent > 0)
     {
         painter.setPen(ltBlue);
         brush.setColor(ltBlue);
         painter.setBrush(brush);
-        painter.drawPie(outRect, 90 * 16, -percent * 360 / 100 * 16);
+        painter.drawPie(outRect, 90 * 16, -usedPercent * 360 / 100 * 16);
     }
 
     double inRad = 50.0;
@@ -166,21 +166,27 @@ void MainWindow::paintTrayIcon()
     trayIcon->setIcon(icon);
 
     int show = settings->value("show", 0).toInt();
-    long long remaining = serverData == nullptr ? 0 : serverData->capBytes - serverData->usedBytes;
+
+    long long cap = serverData == nullptr ? 0 : inMegabytes(serverData->capBytes);
+    long long remaining = serverData == nullptr ? 0 : cap - inMegabytes(serverData->usedBytes);
 
     if (remaining < 0)
         remaining = 0;
 
+    int remainPercent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
+                static_cast<int>(remaining * 100 / cap) : 0;
+
     if (serverData != nullptr && serverData->isActive && serverData->capBytes > 0 && serverData->warningThreshold > 0
-            && remaining * 100 / serverData->capBytes <= serverData->warningThreshold - 1
+            &&  remainPercent <= serverData->warningThreshold - 1
             && settings->value("captime", 0).toInt() < serverData->capTime
             && show > 0
             && (messageShown.elapsed() == 0 || messageShown.elapsed() >= show * 1000 * 60))
     {
         QString msg;
         QTextStream stream(&msg);
-        stream << inMegabytes(remaining) << " MB remaining ("
-               << remaining * 100 / serverData->capBytes << "%)" << endl
+
+        stream << remaining << " MB left ("
+               << remainPercent << "%)" << endl
                << endl << "This message will appear again in "
                << show << (show > 1 ? " minutes" : " minute");
 
@@ -197,6 +203,7 @@ void MainWindow::paintTrayIcon()
 
         trayIcon->showMessage(tr("Mobile data is running low"), msg, icon,
                               settings->value("hide", 0).toInt() * 1000);
+        hideBalloon = true;
 #endif
         messageShown.start();
     }
@@ -230,6 +237,15 @@ void MainWindow::parseReply(QNetworkReply* pReply)
 
         lastReception.restart();
         setActive();
+
+#if defined(Q_OS_WIN) && (QT_VERSION >= 0x050600)
+        if (messageShown.elapsed() > settings->value("hide", 0).toInt() * 1000 && hideBalloon)
+        {
+            trayIcon->hide();
+            trayIcon->show();
+            hideBalloon = false;
+        }
+#endif
     }
 }
 
@@ -286,18 +302,26 @@ void MainWindow::timerEvent(QTimerEvent *event)
     {
         QString status1;
         QTextStream stream1(&status1);
+
         stream1 << inMegabytes(serverData->usedBytes) << " MB";
+
+        long long cap = serverData == nullptr ? 0 : inMegabytes(serverData->capBytes);
+        long long remaining = serverData == nullptr ? 0 : cap - inMegabytes(serverData->usedBytes);
+
+        if (remaining < 0)
+            remaining = 0;
+
+        int remainPercent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
+                    static_cast<int>(remaining * 100 / cap) : 0;
 
         if (serverData->capBytes > 0)
         {
-            stream1 << " of " << inMegabytes(serverData->capBytes) << " MB";
+            stream1 << " of " << cap << " MB";
 
             QString status2;
             QTextStream stream2(&status2);
 
-            stream2 << (serverData->capBytes > serverData->usedBytes ?
-                        inMegabytes(serverData->capBytes)  - inMegabytes(serverData->usedBytes) : 0) << " MB left"
-                    << " (" << (serverData->capBytes - serverData->usedBytes) * 100 / serverData->capBytes << "%)";
+            stream2 << remaining << " MB left" << " (" << remainPercent << "%)";
 
             status2Action->setText(status2);
             status2Action->setVisible(true);
