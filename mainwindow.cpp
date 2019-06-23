@@ -67,6 +67,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     lastReception.start();
     timerId = startTimer(1000);
+
+    messageShown = new QTime();
 }
 
 MainWindow::~MainWindow()
@@ -87,8 +89,22 @@ long long MainWindow::inMegabytes(long long mb)
 void MainWindow::setActive()
 {
     if (serverData != nullptr)
+    {
         serverData->isActive = serverData->timeElapsed < serverData->transmitInterval + maxDelay
             && lastReception.elapsed() < maxTransmitAge * 1000;
+
+        if (settings->value("captime", 0).toInt() < serverData->capTime
+                && ui->checkBoxSuppress->isChecked())
+        {
+            settings->setValue("captime", static_cast<long long>(serverData->capTime));
+            ui->checkBoxSuppress->setCheckState(Qt::Unchecked);
+
+            QTime *oldTime;
+            oldTime = messageShown;
+            messageShown = new QTime();
+            delete oldTime;
+        }
+    }
 }
 
 void MainWindow::iconMessageClicked()
@@ -176,11 +192,12 @@ void MainWindow::paintTrayIcon()
     int remainPercent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
                 static_cast<int>(remaining * 100 / cap) : 0;
 
-    if (serverData != nullptr && serverData->isActive && serverData->capBytes > 0 && serverData->warningThreshold > 0
-            &&  remainPercent <= serverData->warningThreshold - 1
-            && settings->value("captime", 0).toInt() < serverData->capTime
+    if (serverData != nullptr && serverData->isActive
+            && serverData->capBytes > 0 && serverData->warningThreshold > 0
+            && remainPercent <= serverData->warningThreshold - 1
+            && !ui->checkBoxSuppress->isChecked()
             && show > 0
-            && (messageShown.elapsed() == 0 || messageShown.elapsed() >= show * 1000 * 60))
+            && (messageShown->isNull() || messageShown->elapsed() >= show * 1000 * 60))
     {
         QString msg;
         QTextStream stream(&msg);
@@ -205,7 +222,7 @@ void MainWindow::paintTrayIcon()
                               settings->value("hide", 0).toInt() * 1000);
         hideBalloon = true;
 #endif
-        messageShown.start();
+        messageShown->start();
     }
 }
 
@@ -239,7 +256,7 @@ void MainWindow::parseReply(QNetworkReply* pReply)
         setActive();
 
 #if defined(Q_OS_WIN) && (QT_VERSION >= 0x050600)
-        if (messageShown.elapsed() > settings->value("hide", 0).toInt() * 1000 && hideBalloon)
+        if (messageShown->elapsed() > settings->value("hide", 0).toInt() * 1000 && hideBalloon)
         {
             trayIcon->hide();
             trayIcon->show();

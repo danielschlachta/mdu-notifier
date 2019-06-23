@@ -45,7 +45,7 @@ private:
     ServerData *serverData = nullptr;
 
     QTime lastReception;
-    QTime messageShown;
+    QTime *messageShown;
     bool hideBalloon = false;
 
     QSettings *settings;
