@@ -6,7 +6,7 @@ cd c:\Qt\Qt5.5.1\5.5\mingw492_32\bin
 
 call qtenv2.bat
 
-d:
+Z:
 cd "\UserFiles\Daniel\Qt Projects\mdu-notifier\installer-xp"
 
 rmdir /s /q build
@@ -26,7 +26,7 @@ copy build\release\mdu-notifier.exe deploy
 windeployqt.exe --compiler-runtime --no-translations --release deploy
 
 cd ..\wixgen
-c:\cygwin\bin\bash --login -c "cd '/cygdrive/d/UserFiles/Daniel/Qt Projects/mdu-notifier/wixgen'; ./wixgen.sh ../installer-xp deploy | tee ../installer-xp/mdu-notifier-xp.wxs"
+c:\cygwin\bin\bash --login -c "cd '/cygdrive/z/UserFiles/Daniel/Qt Projects/mdu-notifier/wixgen'; ./wixgen.sh ../installer-xp deploy | tee ../installer-xp/mdu-notifier-xp.wxs"
 
 cd ..\installer-xp
 

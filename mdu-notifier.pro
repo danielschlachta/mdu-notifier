@@ -33,6 +33,8 @@ SOURCES += \
     secretdialog.cpp
 
 HEADERS += \
+    common.h \
+    common.h \
         mainwindow.h \
         runguard.h \
         server.h \
