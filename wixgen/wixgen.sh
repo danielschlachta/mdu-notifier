@@ -8,6 +8,9 @@ cat <<EOT
     <Package Id="*" Keywords="Installer" Description="Mobile Data Usage Installer" Comments="Tray Icon" Manufacturer="Schlachta Software" InstallerVersion="100" Languages="1033" SummaryCodepage="1252" Compressed="yes"/>
 
     <Media Id="1" Cabinet="application.cab" EmbedCab="yes"/>
+
+    <Icon Id="icon.ico" SourceFile="..\mdu-notifier.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="icon.ico" />
     
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Mobile Data Usage"  />
     <Property Id="WixShellExecTarget" Value="[#mdunotifier.exe]" />
