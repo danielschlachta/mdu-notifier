@@ -60,6 +60,8 @@ private:
 private slots:
     void showWindow();
 
+    void iconClicked(QSystemTrayIcon::ActivationReason reason);
+
     void iconMessageClicked();
     void dismissClicked();
 

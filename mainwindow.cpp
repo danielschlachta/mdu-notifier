@@ -33,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     on_checkBoxBuiltin_clicked();
 
+    trayIcon = new QSystemTrayIcon(this);
+    paintTrayIcon();
+
     status1Action = new QAction(this);
     status1Action->setEnabled(false);
     status1Action->setVisible(false);
@@ -48,18 +51,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
     trayIconMenu = new QMenu(this);
 
- #if !defined(Q_OS_WIN)
+#if !defined(Q_OS_WIN)
     trayIconMenu->addAction(status1Action);
     trayIconMenu->addAction(status2Action);
- #endif
+#else
+    connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
+            SLOT(iconClicked(QSystemTrayIcon::ActivationReason)));
+#endif
 
     trayIconMenu->addAction(settingsAction);
     trayIconMenu->addAction(quitAction);
 
-    trayIcon = new QSystemTrayIcon(this);
-    paintTrayIcon();
-
-    connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::iconMessageClicked);   
+    connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::iconMessageClicked);
     trayIcon->setContextMenu(trayIconMenu);
     trayIcon->show();
 
@@ -109,6 +112,12 @@ void MainWindow::setActive()
             delete oldTime;
         }
     }
+}
+
+void MainWindow::iconClicked(QSystemTrayIcon::ActivationReason reason)
+{
+    if (reason == QSystemTrayIcon::Trigger && !settings->value("builtin", false).toBool())
+        QDesktopServices::openUrl(QUrl(settings->value("url", tr(DEFAULT_URL)).toString()));
 }
 
 void MainWindow::iconMessageClicked()
