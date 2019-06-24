@@ -47,8 +47,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
 
     trayIconMenu = new QMenu(this);
+
+ #if !defined(Q_OS_WIN)
     trayIconMenu->addAction(status1Action);
     trayIconMenu->addAction(status2Action);
+ #endif
+
     trayIconMenu->addAction(settingsAction);
     trayIconMenu->addAction(quitAction);
 
@@ -342,18 +346,22 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
             status2Action->setText(status2);
             status2Action->setVisible(true);
+            trayIcon->setToolTip(status1 + "\n" + status2);
         }
         else
+        {
             status2Action->setVisible(false);
+            trayIcon->setToolTip(status1);
+        }
 
         status1Action->setText(status1);
         status1Action->setVisible(true);
-
     }
     else
     {
         status1Action->setVisible(false);
         status2Action->setVisible(false);
+        trayIcon->setToolTip("");
     }
 }
 
