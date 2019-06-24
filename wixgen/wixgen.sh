@@ -84,7 +84,7 @@ find * -maxdepth 0 -exec "$COMPGEN" {} \; | sed 's,"[^"]*'"$2"',"'"$2"',g'
 cat <<EOT
     </DirectoryRef>
 
-    <Feature Id="MainApplication" Title="Mobile data usage tray icon" Level="1" Absent="disallow">
+    <Feature Id="MainApplication" Title="Tray icon" Level="1" Absent="disallow">
 EOT
 
 find * -maxdepth 0 -exec "$FEATGEN" {} \; 
@@ -96,7 +96,7 @@ cat <<EOT
         <ComponentRef Id="ApplicationShortcut" />  
     </Feature>
 
-    <Feature Id="StartupShortcut" Title="Add to startup programs" Level="1">
+    <Feature Id="StartupShortcut" Title="Launch at startup" Level="1">
         <ComponentRef Id="StartupShortcut" />  
     </Feature>
 </Product>
