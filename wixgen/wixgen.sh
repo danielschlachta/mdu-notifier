@@ -45,7 +45,8 @@ cat <<EOT
             <Directory Id="ApplicationMenuFolder" Name="Mobile Data Usage">
                  <Component Id="ApplicationShortcut" Guid="f78e1c6e-455f-4cf8-8d45-0b7e7aa918a2">
                     <Shortcut Id="ApplicationStartMenuShortcut" Advertise="no" 
-                         Name="Mobile Data Usage" 
+                        Name="Mobile Data Usage"
+						Description="Mobile Data Usage"						
                         Target="[#mdunotifier.exe]"
                               WorkingDirectory="APPLICATIONROOTDIRECTORY"/>
                     <RemoveFolder Id="ApplicationMenuFolder" On="uninstall"/>   
@@ -57,7 +58,8 @@ cat <<EOT
                 <Directory Id="StartupFolder" Name="Startup">
                  <Component Id="StartupShortcut" Guid="b5a2e82d-4435-4a14-9e79-71c23e0b1679">
                     <Shortcut Id="StartupMenuShortcut" Advertise="no" 
-                         Name="Mobile Data Usage" 
+                        Name="Mobile Data Usage"
+						Description="Mobile Data Usage"						
                         Target="[#mdunotifier.exe]"
                               WorkingDirectory="APPLICATIONROOTDIRECTORY"/>
                     <RemoveFolder Id="StartupMenuFolder" On="uninstall"/>   

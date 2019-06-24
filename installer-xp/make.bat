@@ -1,8 +1,8 @@
 @echo off
 
-c:
+d:
 
-cd c:\Qt\Qt5.5.1\5.5\mingw492_32\bin
+cd \Qt\Qt5.5.1\5.5\mingw492_32\bin
 
 call qtenv2.bat
 
