@@ -319,6 +319,14 @@ void MainWindow::timerEvent(QTimerEvent *event)
         if (lastReception.elapsed() >= transmitInterval)
         {
             QUrl url = settings->value("url", DEFAULT_URL).toString() + "/mdu-notifier.php";
+
+            if (sim != "")
+            {
+                QString t = "?t=t";
+
+                url = url.toString() + t + sim;
+            }
+
             QNetworkRequest request(url);
             networkAccessManager.get(request);
         }

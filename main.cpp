@@ -28,5 +28,9 @@ int main(int argc, char *argv[])
     a.setQuitOnLastWindowClosed(false);
 
     MainWindow w;
+
+    if (argc == 3 && !strcmp(argv[1], "--sim"))
+        w.sim = argv[2];
+
     return a.exec();
 }

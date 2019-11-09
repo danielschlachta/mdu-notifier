@@ -22,6 +22,8 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+    QString sim;
+
 protected:
     long maxTransmitAge = 10;
     long maxDelay = 15;
