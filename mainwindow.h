@@ -26,7 +26,7 @@ public:
 
 protected:
     long maxTransmitAge = 10;
-    long maxDelay = 15;
+    long maxDelay = 20;
     long transmitInterval = 5;
 
 private:

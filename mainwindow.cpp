@@ -148,19 +148,29 @@ void MainWindow::paintTrayIcon()
     QPixmap pixmap(200, 200);
     pixmap.fill(Qt::transparent);
 
-    QColor ltBlue(0x2c, 0xac, 0xda);
     QColor ltGray(0xd4, 0xcc, 0xc3);
+    QColor mdGray(0xb1, 0xa7, 0x9f);
     QColor dkGray(0x80, 0x7c, 0x76);
+    QColor ltBlue(0x2c, 0xac, 0xda);
+    QColor mdBlue(0x27, 0x7a, 0x97);
 
     QPainter painter(&pixmap);
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
     QRectF outRect(20.0, 20.0, 160.0, 160.0);
 
-    if (serverData != nullptr && serverData->isActive)
+    if (serverData != nullptr)
     {
-        painter.setPen(ltGray);
-        brush.setColor(ltGray);
+        if (serverData->isActive)
+        {
+            painter.setPen(ltGray);
+            brush.setColor(ltGray);
+        }
+        else
+        {
+            painter.setPen(mdGray);
+            brush.setColor(mdGray);
+        }
         painter.setBrush(brush);
     }
     else
@@ -171,13 +181,21 @@ void MainWindow::paintTrayIcon()
     }
     painter.drawPie(outRect, 90 * 16, 360 * 16);
 
-    int usedPercent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
+    int usedPercent = serverData != nullptr && serverData->capBytes > 0 ?
                 static_cast<int>(serverData->usedBytes * 100 / serverData->capBytes) : 0;
 
     if (usedPercent > 0)
     {
-        painter.setPen(ltBlue);
-        brush.setColor(ltBlue);
+        if (serverData->isActive)
+        {
+            painter.setPen(ltBlue);
+            brush.setColor(ltBlue);
+        }
+        else
+        {
+            painter.setPen(mdBlue);
+            brush.setColor(mdBlue);
+        }
         painter.setBrush(brush);
         painter.drawPie(outRect, 90 * 16, -usedPercent * 360 / 100 * 16);
     }
@@ -336,7 +354,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
     paintTrayIcon();
 
-    if (serverData != nullptr && serverData->isActive)
+    if (serverData != nullptr)
     {
         QString status1;
         QTextStream stream1(&status1);
@@ -349,8 +367,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
         if (remaining < 0)
             remaining = 0;
 
-        int remainPercent = serverData != nullptr && serverData->isActive && serverData->capBytes > 0 ?
-                    static_cast<int>(remaining * 100 / cap) : 0;
+        int remainPercent = serverData != nullptr
+                && serverData->capBytes > 0 ? static_cast<int>(remaining * 100 / cap) : 0;
 
         if (serverData->capBytes > 0)
         {
