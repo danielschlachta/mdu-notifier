@@ -18,11 +18,6 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    RunGuard runGuard("mdu-notifier-runguard");
-
-    if (!runGuard.tryToRun())
-            return EXIT_FAILURE;
-
     QApplication a(argc, argv);
 
     a.setQuitOnLastWindowClosed(false);
@@ -31,6 +26,12 @@ int main(int argc, char *argv[])
 
     if (argc == 3 && !strcmp(argv[1], "--sim"))
         w.sim = argv[2];
+
+    RunGuard runGuard("mdu-notifier-runguard" + w.sim);
+
+    if (!runGuard.tryToRun())
+            return EXIT_FAILURE;
+
 
     return a.exec();
 }
