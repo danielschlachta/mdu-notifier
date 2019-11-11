@@ -7,6 +7,8 @@
 #include "runguard.h"
 #include "mainwindow.h"
 
+#define SIM "--sim="
+
 int main(int argc, char *argv[])
 {
     const char *title = APPTITLE;
@@ -24,14 +26,16 @@ int main(int argc, char *argv[])
 
     MainWindow w;
 
-    if (argc == 3 && !strcmp(argv[1], "--sim"))
-        w.sim = argv[2];
+    if (argc == 2 && !strncmp(argv[1], SIM, 6))
+    {
+        w.sim = argv[1];
+        w.sim.remove(SIM);
+    }
 
     RunGuard runGuard("mdu-notifier-runguard" + w.sim);
 
     if (!runGuard.tryToRun())
             return EXIT_FAILURE;
-
 
     return a.exec();
 }
