@@ -22,11 +22,13 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
-    QString sim;
+    void init(QString simserial);
 
 protected:
+    QString sim;
+
     long maxTransmitAge = 10;
-    long maxDelay = 20;
+    long maxDelay = 80;
     long transmitInterval = 5;
 
 private:

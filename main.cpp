@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
 {
     const char *title = APPTITLE;
     const char *version = APPVERSION;
+    QString sim;
 
     if (argc == 2 && !strcmp(argv[1], "--version"))
     {
@@ -20,19 +21,20 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
+    if (argc == 2 && !strncmp(argv[1], SIM, 6))
+    {
+        sim = argv[1];
+        sim.remove(SIM);
+    }
+
     QApplication a(argc, argv);
 
     a.setQuitOnLastWindowClosed(false);
 
     MainWindow w;
+    w.init(sim);
 
-    if (argc == 2 && !strncmp(argv[1], SIM, 6))
-    {
-        w.sim = argv[1];
-        w.sim.remove(SIM);
-    }
-
-    RunGuard runGuard("mdu-notifier-runguard" + w.sim);
+    RunGuard runGuard("mdu-notifier-runguard" + sim);
 
     if (!runGuard.tryToRun())
             return EXIT_FAILURE;

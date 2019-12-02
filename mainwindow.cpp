@@ -18,8 +18,18 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
+{}
+
+void MainWindow::init(QString simserial)
 {
-    settings = new QSettings("mdu-notifier", "mdu-notifier");
+    sim = simserial;
+
+    QString application = "mdu-notifier";
+
+    if (sim != "")
+        application = application + "-" + sim;
+
+    settings = new QSettings("mdu-notifier", application);
 
     ui->setupUi(this);
 
@@ -97,6 +107,9 @@ void MainWindow::setActive()
 {
     if (serverData != nullptr)
     {
+        qDebug("%ld %d %d %ld", serverData->timeElapsed, serverData->transmitInterval,
+               lastReception.elapsed(), maxTransmitAge * 1000);
+
         serverData->isActive = serverData->timeElapsed < serverData->transmitInterval + maxDelay
             && lastReception.elapsed() < maxTransmitAge * 1000;
 
