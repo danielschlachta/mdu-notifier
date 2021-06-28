@@ -8,6 +8,9 @@
 #include <QCloseEvent>
 #include <QWindow>
 #include <QDesktopServices>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 #include "common.h"
 #include "warndialog.h"
@@ -107,9 +110,6 @@ void MainWindow::setActive()
 {
     if (serverData != nullptr)
     {
-        qDebug("%ld %d %d %ld", serverData->timeElapsed, serverData->transmitInterval,
-               lastReception.elapsed(), maxTransmitAge * 1000);
-
         serverData->isActive = serverData->timeElapsed < serverData->transmitInterval + maxDelay
             && lastReception.elapsed() < maxTransmitAge * 1000;
 
@@ -275,39 +275,42 @@ void MainWindow::parseReply(QNetworkReply* pReply)
     QByteArray reply(pReply->readAll());
     pReply->deleteLater();
 
-    QStringList data = tr(reply.data()).split("/");
+    QJsonDocument doc = QJsonDocument::fromJson(reply);
+    QJsonArray arr = doc.array();
+    QJsonObject obj = arr[0].toObject();
 
-    if (data.count() == 7)
-    {
-        ServerData *newData = new ServerData;
+    ServerData *newData = new ServerData;
 
-        newData->isActive = false;
-        newData->timeElapsed = data.value(0).toLong();
-        newData->capTime = data.value(1).toLong();
-        newData->transmitInterval = data.value(2).toInt();
-        newData->warningThreshold = data.value(3).toInt();
-        newData->displayIEC = data.value(4).toInt() != 0;
-        newData->usedBytes = data.value(5).toLongLong();
-        newData->capBytes = data.value(6).toLongLong();
+    long long current = obj.value("current").toString().toLongLong();
+    long long floor = obj.value("floor").toString().toLongLong();
+    long long limit = obj.value("haslimit").toString() == "1" ? obj.value("limit").toString().toLongLong() : 0;
 
-        ServerData *oldData = serverData;
-        serverData = newData;
+    newData->isActive = false;
+    newData->timeElapsed = 0;
+    newData->capTime = 0;
+    newData->transmitInterval = 0;
+    newData->warningThreshold = 0;
+    newData->displayIEC = 1;
+    newData->usedBytes = current - floor;
+    newData->capBytes = limit;
 
-        if (oldData != nullptr)
-            delete oldData;
+    ServerData *oldData = serverData;
+    serverData = newData;
 
-        lastReception.restart();
-        setActive();
+    if (oldData != nullptr)
+        delete oldData;
+
+    lastReception.restart();
+    setActive();
 
 #if defined(Q_OS_WIN) && (QT_VERSION >= 0x050600)
-        if (messageShown->elapsed() > settings->value("hide", 0).toInt() * 1000 && hideBalloon)
-        {
-            trayIcon->hide();
-            trayIcon->show();
-            hideBalloon = false;
-        }
-#endif
+    if (messageShown->elapsed() > settings->value("hide", 0).toInt() * 1000 && hideBalloon)
+    {
+        trayIcon->hide();
+        trayIcon->show();
+        hideBalloon = false;
     }
+#endif
 }
 
 void MainWindow::serverError(QString message)
@@ -349,17 +352,27 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
         if (lastReception.elapsed() >= transmitInterval)
         {
-            QUrl url = settings->value("url", DEFAULT_URL).toString() + "/mdu-notifier.php";
-
-            if (sim != "")
-            {
-                QString t = "?t=t";
-
-                url = url.toString() + t + sim;
-            }
+            QUrl url = settings->value("url", DEFAULT_URL).toString() + "/?update=1";
 
             QNetworkRequest request(url);
-            networkAccessManager.get(request);
+            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+            QJsonObject obj;
+            obj["secret"] = settings->value("secret").toString();
+
+            QJsonObject pull;
+            pull["type"] = "pull";
+            pull["serial"] = sim;
+            pull["lastupd"] = 0;
+            pull["lastchg"] = 0;
+
+            obj["0"] = pull;
+
+            QJsonDocument doc(obj);
+
+            QByteArray data = doc.toJson();
+
+            networkAccessManager.post(request, data);
         }
     }
 
