@@ -55,7 +55,6 @@ RESOURCES += \
 
 DISTFILES += \
     mdu-notifier.desktop \
-    mdu-notifier.png \
     mdu-notifier.rc
 
 RC_FILE = mdu-notifier.rc

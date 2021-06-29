@@ -26,10 +26,9 @@ public:
 
 protected:
     QString sim;
+    bool simIsFromPrefs = false;
 
-    long maxTransmitAge = 10;
-    long maxDelay = 80;
-    long transmitInterval = 5;
+    long maxDelay = 10;
 
 private:
     Ui::MainWindow *ui;
@@ -44,18 +43,10 @@ private:
     QNetworkAccessManager networkAccessManager;
 
     Server server;
-
-    int timerId;
     ServerData *serverData = nullptr;
-
-    QTime lastReception;
-    QTime *messageShown;
-    bool hideBalloon = false;
+    int timerId;
 
     QSettings *settings;
-
-    long long inMegabytes(long long mb);
-    void setActive();
 
     void paintTrayIcon();
     void timerEvent(QTimerEvent *event) override;
@@ -71,10 +62,10 @@ private slots:
 
     void secretChanged(QString secret);
 
-    void parseReply(QNetworkReply* pReply);
+    void dataReceived(ServerData *data);
+    void parseReply(QNetworkReply *pReply);
 
     void serverError(QString message);
-    void dataReceived(ServerData data);
 
     void on_lineEditURL_editingFinished();
     void on_spinBox_show_valueChanged(int arg1);
@@ -83,8 +74,11 @@ private slots:
     void on_checkBoxSuppress_clicked();
     void on_pushButtonVisit_clicked();
 
-    void on_checkBoxBuiltin_clicked();
     void on_pushButtonSecret_clicked();
+    void on_radioButton_clicked();
+    void on_radioButton_2_clicked();
+    void on_spinBoxPort_valueChanged(int arg1);
+    void on_lineEditSimId_editingFinished();
 };
 
 #endif // MAINWINDOW_H

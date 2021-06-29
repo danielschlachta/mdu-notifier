@@ -3,20 +3,14 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QTime>
 
 struct ServerData
 {
-    bool isActive; // set by recipient
-    long timeElapsed;
+    bool active;
+    long rxtime;
 
-    bool displayIEC;
-    int warningThreshold;
-    int transmitInterval;
-
-    long long usedBytes;
-    long long capBytes;
-    long capTime;
+    long long used;
+    long long limit;
 };
 
 class Server : public QTcpServer
@@ -29,18 +23,22 @@ public:
 
     bool isOpen = false;
     bool hasError = false;
-    QTime lastReception;
 
-    void open(int port, QString secret);
+    void open(int port, QString secret, QString sim);
     void close();
 
 private:
     QTcpSocket tcpSocket;
+
     QString serverSecret;
+    QString serverSim;
+
+    QString receivedData;
+    int receivedLen;
 
 signals:
     void serverError(QString message);
-    void dataReceived(ServerData data);
+    void dataReceived(ServerData *data);
 
 public slots:
     void tcpReady();

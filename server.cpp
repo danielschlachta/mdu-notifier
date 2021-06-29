@@ -1,3 +1,6 @@
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include "server.h"
 
 Server::Server(QObject *parent) : QTcpServer(parent)
@@ -9,7 +12,7 @@ Server::Server(QObject *parent) : QTcpServer(parent)
 
     tcpSocket.setSocketOption(QAbstractSocket::KeepAliveOption, true);
 
-    lastReception.start();
+    receivedLen = -1;
 }
 
 Server::~Server()
@@ -17,9 +20,10 @@ Server::~Server()
     tcpSocket.disconnectFromHost();
 }
 
-void Server::open(int port, QString secret)
+void Server::open(int port, QString secret, QString sim)
 {
     serverSecret = secret;
+    serverSim = sim;
 
     if (isOpen)
         return;
@@ -41,57 +45,99 @@ void Server::close()
     hasError = false;
 }
 
-long long getValue(QStringList stringList, int index, const char *ckey)
-{
-    QString key(ckey);
-    key += QString::number(index) + "=";
-
-    for (int i = 0; i < stringList.size(); i++)
-    {
-        QString string = stringList.value(i);
-
-        if (string.left(key.length()) == key)
-            return string.right(string.length() - key.length()).toLongLong();
-    }
-
-    return -1;
-}
-
 void Server::tcpReady()
 {
-    QStringList data = tr(tcpSocket.read(tcpSocket.bytesAvailable())).split(" ");
+    QString data = tcpSocket.readAll();
 
     if (data.size() < 1)
     {
-        tcpSocket.close();
-        return;
+       tcpSocket.close();
+       return;
     }
 
-    QStringList request = data.value(1).split("&");
+    int index;
 
-    if (request.value(0) != "/app.php?s=" + serverSecret)
-    {
-        tcpSocket.close();
-        return;
+    if (receivedLen < 0) {
+        if ((index = data.indexOf("Content-Length: ")) > 0) {
+            data.remove(0, index + 16);
+
+            index = data.indexOf("\r\n");
+            receivedLen = data.mid(0, index).toInt();
+
+            data.remove(0, index + 4);
+            receivedData = data;
+        } else {
+            tcpSocket.close();
+            return;
+        }
+    } else {
+        receivedData.append(data);
     }
 
-    ServerData serverData;
+    ServerData *serverData = nullptr;
 
-    serverData.isActive = false;
-    serverData.timeElapsed = lastReception.elapsed() / 1000;
-    serverData.usedBytes = getValue(request, 1, "rx") - getValue(request, 2, "rx")
-            + getValue(request, 1, "tx") - getValue(request, 2, "tx") + getValue(request, 3, "tx");
-    serverData.capBytes = getValue(request, 3, "rx");
-    serverData.capTime = getValue(request, 3, "t") / 1000;
-    serverData.transmitInterval = static_cast<int>(getValue(request, 4, "rx"));
-    serverData.warningThreshold = static_cast<int>(getValue(request, 4, "tx"));
-    serverData.displayIEC =getValue(request, 5, "rx");
+    if (receivedData.size() >= receivedLen) {
+        receivedLen = -1;
 
-    lastReception.restart();
+        QString response = "HTTP/1.1 200 OK\r\nDate: Tue, 29 Jun 2021 11:12:14 GMT\r\n"
+                "Server: Apache/2.4.41 (Ubuntu)\r\n";
 
-    tcpSocket.close();
+        QJsonDocument doc = QJsonDocument::fromJson(receivedData.toUtf8().data());
+        QJsonObject obj = doc.object();
 
-    emit dataReceived(serverData);
+        if (obj.value("secret").toString().compare(serverSecret) != 0) {
+            response.append("Content-Length: 12\r\nConnection: close\r\n"
+                "Content-Type: text/html; charset=UTF-8\r\n\r\nWrong secret");
+
+        } else {
+            response.append("Content-Length: 2\r\nConnection: close\r\n"
+                "Content-Type: text/html; charset=UTF-8\r\n\r\n[]");
+
+            QString iStr;
+
+            for (int i = 0; iStr = QString::number(i), obj.contains(iStr); i++) {
+                QJsonObject card = obj.value(iStr).toObject();
+
+                if (card.value("type").toString().compare("push") == 0 &&
+                        card.value("serial").toString().compare(serverSim) == 0) {
+
+                    QStringList data = card.value("data").toString().split(":");
+                    serverData = new ServerData();
+
+                    //long lastChange = data.value(0).toLong();
+                    //long lastUpdate = data.value(1).toLong();
+                    long long current = data.value(2).toLongLong();
+                    long long floor = data.value(3).toLongLong();
+                    bool hasLimit = data.value(4).toStdString().compare("1") == 0;
+                    long long limit = data.value(5).toLongLong();
+                    /* bool hasUsedWarning = data.value(6).toStdString().compare("1") == 0;
+                    long long usedWarning = data.value(7).toLongLong();
+                    long usedLastSeen = data.value(8).toLong();
+                    bool hasRemainWarning = data.value(9).toStdString().compare("1") == 0;
+                    long long remainWarning = data.value(10).toLongLong();
+                    long remainLastSeen = data.value(11).toLong(); */
+
+                    serverData->rxtime = data.value(1).toLong();
+                    serverData->used = current - floor;
+
+                    if (serverData->used < 0)
+                        serverData->used = 0;
+
+                    if (hasLimit) {
+                        serverData->limit = limit;
+
+                    } else
+                        serverData->limit = 0;
+                 }
+             }
+        }
+
+        tcpSocket.write(response.toLocal8Bit());
+        tcpSocket.close();
+    }
+
+    if (serverData != nullptr)
+        emit dataReceived(serverData);
 }
 
 void Server::tcpError(QAbstractSocket::SocketError error)
@@ -102,6 +148,8 @@ void Server::tcpError(QAbstractSocket::SocketError error)
         close();
         emit serverError(tcpSocket.errorString());
     }
+
+    qDebug("Remote host closed connection");
 }
 
 void Server::incomingConnection(qintptr descriptor)
