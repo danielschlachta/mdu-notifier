@@ -198,8 +198,7 @@ void MainWindow::paintTrayIcon()
     QRectF inRect(outRect.left() + inRad, outRect.top() + inRad,
                   outRect.width() - inRad * 2, outRect.height() - inRad * 2);
 
-    brush.setColor(QColor(70, 70, 70));
-    painter.setBrush(brush);
+    painter.setBrush(QColor("erase"));
     painter.drawPie(inRect, 90 * 16, 360 * 16);
 
     QIcon icon(pixmap);
