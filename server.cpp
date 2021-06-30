@@ -39,10 +39,13 @@ void Server::open(int port, QString secret, QString sim)
 
 void Server::close()
 {
-    if (isOpen)
+    if (isOpen) {
+        tcpSocket.close();
         QTcpServer::close();
+    }
 
     hasError = false;
+    isOpen = false;
 }
 
 void Server::tcpReady()
@@ -68,6 +71,7 @@ void Server::tcpReady()
             receivedData = data;
         } else {
             tcpSocket.close();
+            emit dataReceived(nullptr);
             return;
         }
     } else {
@@ -88,7 +92,7 @@ void Server::tcpReady()
         if (obj.value("secret").toString().compare(serverSecret) != 0) {
             response.append("Content-Length: 12\r\nConnection: close\r\n"
                 "Content-Type: text/html; charset=UTF-8\r\n\r\nWrong secret");
-
+            emit dataReceived(nullptr);
         } else {
             response.append("Content-Length: 2\r\nConnection: close\r\n"
                 "Content-Type: text/html; charset=UTF-8\r\n\r\n[]");

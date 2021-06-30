@@ -13,7 +13,7 @@
 #include <QJsonDocument>
 
 #include "common.h"
-#include "warndialog.h"
+#include "listdialog.h"
 #include "secretdialog.h"
 
 #define DEFAULT_URL "http://localhost/mdu"
@@ -129,6 +129,12 @@ void MainWindow::secretChanged(QString secret)
     settings->setValue("secret", secret);
 }
 
+void MainWindow::listItemSelected(QString serial)
+{
+    this->ui->lineEditSimId->setText(serial);
+    settings->setValue("simserial", serial);
+}
+
 void MainWindow::showWindow()
 {
     move(settings->value("pos", QPoint(200, 200)).toPoint());
@@ -208,20 +214,67 @@ void MainWindow::paintTrayIcon()
 
 void MainWindow::dataReceived(ServerData *data)
 {
-    if (data == nullptr)
-        return;
+    if (data != nullptr) {
+        ServerData *oldData = serverData;
+        serverData = data;
 
-    ServerData *oldData = serverData;
-    serverData = data;
-
-    if (oldData != nullptr) {
-        serverData->active = data->rxtime - oldData->rxtime < maxDelay * 1000;
-        delete oldData;
+        if (oldData != nullptr) {
+            serverData->active = data->rxtime - oldData->rxtime < maxDelay * 1000;
+            delete oldData;
+        } else {
+            serverData->active = true;
+        }
     } else {
-        serverData->active = false;
+        if (serverData != nullptr)
+            serverData->active = false;
     }
 
     paintTrayIcon();
+
+    if (serverData == nullptr) {
+        status1Action->setVisible(false);
+        status2Action->setVisible(false);
+        trayIcon->setToolTip("");
+        return;
+    }
+
+    lastReception = QDateTime::currentDateTime();
+
+    QString status1;
+    QTextStream stream1(&status1);
+
+    stream1 << serverData->used / 1024 / 1024 << " MB";
+
+    long long cap = serverData == nullptr ? 0 : serverData->limit / 1024 / 1024;
+    long long remaining = serverData == nullptr ? 0 : cap - serverData->used / 1024 / 1024;
+
+    if (remaining < 0)
+        remaining = 0;
+
+    int remainPercent = serverData != nullptr
+            && serverData->limit > 0 ? static_cast<int>(remaining * 100 / cap) : 0;
+
+    if (serverData->limit > 0)
+    {
+        stream1 << " of " << cap << " MB";
+
+        QString status2;
+        QTextStream stream2(&status2);
+
+        stream2 << remaining << " MB left" << " (" << remainPercent << "%)";
+
+        status2Action->setText(status2);
+        status2Action->setVisible(true);
+        trayIcon->setToolTip(status1 + "\n" + status2);
+    }
+    else
+    {
+        status2Action->setVisible(false);
+        trayIcon->setToolTip(status1);
+    }
+
+    status1Action->setText(status1);
+    status1Action->setVisible(true);
 }
 
 void MainWindow::parseReply(QNetworkReply* pReply)
@@ -232,6 +285,23 @@ void MainWindow::parseReply(QNetworkReply* pReply)
     QJsonDocument doc = QJsonDocument::fromJson(reply);
     QJsonArray arr = doc.array();
     QJsonObject obj;
+
+    if (arr.size() > 0 && arr[0].toObject().contains("serial")) { // list reply
+        QStringList captions;
+        QStringList serials;
+
+        for (int i = 0; i < arr.size(); i++) {
+            obj = arr[i].toObject();
+            captions.append(obj.value("caption").toString());
+            serials.append(obj.value("serial").toString());
+        }
+
+        ListDialog *listDialog = new ListDialog(this, captions, serials);
+        connect(listDialog, SIGNAL(selected(QString)), this, SLOT(listItemSelected(QString)));
+        listDialog->show();
+
+        return;
+    }
 
     ServerData *newData = nullptr;
 
@@ -259,6 +329,7 @@ void MainWindow::serverError(QString message)
     QMessageBox::warning(this, tr(APPTITLE), tr("The built-in server encountered a problem:\n")
                          + message);
     server.hasError = false;
+    dataReceived(nullptr);
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -302,49 +373,9 @@ void MainWindow::timerEvent(QTimerEvent *event)
         networkAccessManager.post(request, data);
     }
 
-    if (serverData != nullptr)
-    {
-        QString status1;
-        QTextStream stream1(&status1);
-
-        stream1 << serverData->used / 1024 / 1024 << " MB";
-
-        long long cap = serverData == nullptr ? 0 : serverData->limit / 1024 / 1024;
-        long long remaining = serverData == nullptr ? 0 : cap - serverData->used / 1024 / 1024;
-
-        if (remaining < 0)
-            remaining = 0;
-
-        int remainPercent = serverData != nullptr
-                && serverData->limit > 0 ? static_cast<int>(remaining * 100 / cap) : 0;
-
-        if (serverData->limit > 0)
-        {
-            stream1 << " of " << cap << " MB";
-
-            QString status2;
-            QTextStream stream2(&status2);
-
-            stream2 << remaining << " MB left" << " (" << remainPercent << "%)";
-
-            status2Action->setText(status2);
-            status2Action->setVisible(true);
-            trayIcon->setToolTip(status1 + "\n" + status2);
-        }
-        else
-        {
-            status2Action->setVisible(false);
-            trayIcon->setToolTip(status1);
-        }
-
-        status1Action->setText(status1);
-        status1Action->setVisible(true);
-    }
-    else
-    {
-        status1Action->setVisible(false);
-        status2Action->setVisible(false);
-        trayIcon->setToolTip("");
+    if (serverData != nullptr && QDateTime::currentDateTime().secsTo(lastReception) < -maxDelay) {
+        serverData->active = false;
+        dataReceived(nullptr);
     }
 }
 
@@ -399,19 +430,28 @@ void MainWindow::on_pushButtonSecret_clicked()
 
 void MainWindow::on_radioButton_clicked()
 {
-    settings->setValue("builtin", false);
-    ui->radioButton_2->setChecked(false);
-    ui->pushButtonList->setEnabled(true);
+    if (ui->radioButton->isChecked()) {
+        ui->radioButton_2->setChecked(false);
+        ui->pushButtonList->setEnabled(simIsFromPrefs);
+    } else {
+        ui->radioButton->setChecked(true);
+    }
+
+    settings->setValue("builtin", ui->radioButton_2->isChecked());
+    server.close();
     timerEvent(nullptr);
 }
 
 void MainWindow::on_radioButton_2_clicked()
 {
-    server.close();
-    settings->setValue("builtin", true);
-    ui->radioButton->setChecked(false);
-    ui->pushButtonList->setEnabled(false);
-    timerEvent(nullptr);
+    if (ui->radioButton_2->isChecked()) {
+        ui->radioButton->setChecked(false);
+        ui->pushButtonList->setEnabled(false);
+    } else {
+        ui->radioButton_2->setChecked(true);
+    }
+
+    settings->setValue("builtin", ui->radioButton_2->isChecked());
 }
 
 void MainWindow::on_spinBoxPort_valueChanged(int arg1)
@@ -426,4 +466,23 @@ void MainWindow::on_lineEditSimId_editingFinished()
 
     if (simIsFromPrefs)
         sim = ui->lineEditSimId->text();
+}
+
+void MainWindow::on_pushButtonList_clicked()
+{
+    QString urlStr(settings->value("url", DEFAULT_URL).toString());
+    if (!urlStr.endsWith("/"))
+        urlStr += "/";
+    QUrl url = urlStr + "?list=1";
+
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QJsonObject obj;
+    obj["secret"] = settings->value("secret").toString();
+    QJsonDocument doc(obj);
+
+    QByteArray data = doc.toJson();
+
+    networkAccessManager.post(request, data);
 }

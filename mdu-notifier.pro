@@ -25,20 +25,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+    listdialog.cpp \
         main.cpp \
         mainwindow.cpp \
         runguard.cpp \
         server.cpp \
-        warndialog.cpp \
     secretdialog.cpp
 
 HEADERS += \
     common.h \
     common.h \
+    listdialog.h \
         mainwindow.h \
         runguard.h \
         server.h \
-        warndialog.h \
     secretdialog.h
 
 FORMS += \

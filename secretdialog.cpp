@@ -9,6 +9,7 @@ SecretDialog::SecretDialog(QWidget *parent, QString initialValue) :
 {
     label = new QLabel(tr("Secret"));
     lineEdit = new QLineEdit(initialValue);
+    lineEdit->setEchoMode(QLineEdit::Password);
 
     okButton = new QPushButton(tr("&Ok"));
     okButton->setDefault(true);

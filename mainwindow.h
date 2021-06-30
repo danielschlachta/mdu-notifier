@@ -44,6 +44,7 @@ private:
 
     Server server;
     ServerData *serverData = nullptr;
+    QDateTime lastReception;
     int timerId;
 
     QSettings *settings;
@@ -56,11 +57,11 @@ private slots:
     void showWindow();
 
     void iconClicked(QSystemTrayIcon::ActivationReason reason);
-
     void iconMessageClicked();
     void dismissClicked();
 
     void secretChanged(QString secret);
+    void listItemSelected(QString serial);
 
     void dataReceived(ServerData *data);
     void parseReply(QNetworkReply *pReply);
@@ -79,6 +80,7 @@ private slots:
     void on_radioButton_2_clicked();
     void on_spinBoxPort_valueChanged(int arg1);
     void on_lineEditSimId_editingFinished();
+    void on_pushButtonList_clicked();
 };
 
 #endif // MAINWINDOW_H

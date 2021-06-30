@@ -21,8 +21,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>400</width>
-    <height>337</height>
+    <width>540</width>
+    <height>342</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -162,7 +162,7 @@
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>SIM Serial</string>
+         <string>SIM Serial/Phone ID</string>
         </property>
        </widget>
       </item>
@@ -175,7 +175,7 @@
          </size>
         </property>
         <property name="text">
-         <string/>
+         <string>8940011806605353636</string>
         </property>
        </widget>
       </item>
