@@ -3,6 +3,19 @@
 
 #include "server.h"
 
+ServerData::ServerData()
+{
+    slotlists.append(new SlotList(0, 9, 10 * 1000, 3));
+    slotlists.append(new SlotList(1, 24, 300 * 1000, 4));
+    slotlists.append(new SlotList(2, 12, 3600 * 1000, 6));
+}
+
+ServerData::~ServerData()
+{
+    for (int i = 0; i < slotlists.size(); i++)
+        delete slotlists.at(i);
+}
+
 Server::Server(QObject *parent) : QTcpServer(parent)
 {
     connect(&tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
@@ -105,11 +118,13 @@ void Server::tcpReady()
                 if (card.value("type").toString().compare("push") == 0 &&
                         card.value("serial").toString().compare(serverSim) == 0) {
 
-                    QStringList data = card.value("data").toString().split(":");
                     serverData = new ServerData();
+                    serverData->caption = card.value("caption").toString();
+
+                    QStringList data = card.value("data").toString().split(":");
 
                     //long lastChange = data.value(0).toLong();
-                    //long lastUpdate = data.value(1).toLong();
+                    long lastUpdate = data.value(1).toLong();
                     long long current = data.value(2).toLongLong();
                     long long floor = data.value(3).toLongLong();
                     bool hasLimit = data.value(4).toStdString().compare("1") == 0;
@@ -121,7 +136,7 @@ void Server::tcpReady()
                     long long remainWarning = data.value(10).toLongLong();
                     long remainLastSeen = data.value(11).toLong(); */
 
-                    serverData->rxtime = data.value(1).toLong();
+                    serverData->rxtime = lastUpdate;
                     serverData->used = current - floor;
 
                     if (serverData->used < 0)
@@ -133,6 +148,12 @@ void Server::tcpReady()
                     } else
                         serverData->limit = 0;
                  }
+
+                QJsonArray slotlists = card.value("slots").toArray();
+
+                for (int j = 0; j < slotlists.size(); j++) {
+                    serverData->slotlists.data()[j]->update(j, 0,0,0);
+                }
              }
         }
 

@@ -9,6 +9,7 @@
 #include <QNetworkReply>
 
 #include "server.h"
+#include "showtraffic.h"
 
 namespace Ui {
 class MainWindow;
@@ -37,6 +38,7 @@ private:
     QMenu *trayIconMenu;
     QAction *status1Action;
     QAction *status2Action;
+    QAction *showTrafficAction;
     QAction *settingsAction;
     QAction *quitAction;
 
@@ -49,12 +51,15 @@ private:
 
     QSettings *settings;
 
+    ShowTraffic *showTrafficWindow = nullptr;
+
     void paintTrayIcon();
     void timerEvent(QTimerEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void showWindow();
+    void showTraffic();
 
     void iconClicked(QSystemTrayIcon::ActivationReason reason);
     void iconMessageClicked();

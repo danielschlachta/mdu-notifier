@@ -65,6 +65,10 @@ void MainWindow::init(QString simserial)
     status2Action->setEnabled(false);
     status2Action->setVisible(false);
 
+    showTrafficAction = new QAction(tr("Show Traffic..."), this);
+    connect(showTrafficAction, &QAction::triggered, this, &MainWindow::showTraffic);
+    showTrafficAction->setEnabled(false);
+
     settingsAction = new QAction(tr("Preferences..."), this);
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showWindow);
 
@@ -76,10 +80,12 @@ void MainWindow::init(QString simserial)
 #if !defined(Q_OS_WIN)
     trayIconMenu->addAction(status1Action);
     trayIconMenu->addAction(status2Action);
+    trayIconMenu->addAction(showTrafficAction);
 #else
     connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
             SLOT(iconClicked(QSystemTrayIcon::ActivationReason)));
 #endif
+
 
     trayIconMenu->addAction(settingsAction);
     trayIconMenu->addAction(quitAction);
@@ -93,6 +99,8 @@ void MainWindow::init(QString simserial)
 
     connect(&server, SIGNAL(serverError(QString)), this, SLOT(serverError(QString)));
     connect(&server, SIGNAL(dataReceived(ServerData*)), this, SLOT(dataReceived(ServerData*)));
+
+    showTrafficWindow = new ShowTraffic(this, settings);
 
     timerId = startTimer(2000);
     timerEvent(nullptr);
@@ -111,7 +119,7 @@ MainWindow::~MainWindow()
 void MainWindow::iconClicked(QSystemTrayIcon::ActivationReason reason)
 {
     if (reason == QSystemTrayIcon::Trigger && !settings->value("builtin", false).toBool())
-        QDesktopServices::openUrl(QUrl(settings->value("url", tr(DEFAULT_URL)).toString()));
+        showTraffic();
 }
 
 void MainWindow::iconMessageClicked()
@@ -140,6 +148,12 @@ void MainWindow::showWindow()
     move(settings->value("pos", QPoint(200, 200)).toPoint());
     showNormal();
     raise();
+}
+
+void MainWindow::showTraffic()
+{
+    showTrafficWindow->move(settings->value("trafficpos", QPoint(400, 250)).toPoint());
+    showTrafficWindow->show();
 }
 
 void MainWindow::paintTrayIcon()
@@ -231,11 +245,17 @@ void MainWindow::dataReceived(ServerData *data)
 
     paintTrayIcon();
 
+    showTrafficAction->setEnabled(serverData != nullptr);
+
     if (serverData == nullptr) {
         status1Action->setVisible(false);
         status2Action->setVisible(false);
         trayIcon->setToolTip("");
         return;
+    }
+
+    if (showTrafficWindow != nullptr) {
+        showTrafficWindow->updateData(*serverData);
     }
 
     lastReception = QDateTime::currentDateTime();
@@ -298,6 +318,7 @@ void MainWindow::parseReply(QNetworkReply* pReply)
 
         ListDialog *listDialog = new ListDialog(this, captions, serials);
         connect(listDialog, SIGNAL(selected(QString)), this, SLOT(listItemSelected(QString)));
+        listDialog->setModal(true);
         listDialog->show();
 
         return;
@@ -311,6 +332,8 @@ void MainWindow::parseReply(QNetworkReply* pReply)
          if (obj.value("simserial").toString() == sim) {
              newData = new ServerData;
 
+             newData->caption = obj.value("simcaption").toString();
+
              long long current = obj.value("current").toString().toLongLong();
              long long floor = obj.value("floor").toString().toLongLong();
 
@@ -318,6 +341,18 @@ void MainWindow::parseReply(QNetworkReply* pReply)
              newData->rxtime = obj.value("lastused").toString().toLong();
              newData->used = current - floor;
              newData->limit = obj.value("haslimit").toString() == "1" ? obj.value("limit").toString().toLongLong() : 0;
+
+             QJsonArray slotlists = obj.value("slots").toArray();
+
+             for (int j = 0; j < slotlists.size(); j++) {
+                 QJsonArray list = slotlists.at(j).toArray();
+
+                 for (int k = 0; k < list.size(); k++) {
+                    QStringList data = list.at(k).toString().split(":");
+
+                    newData->slotlists.at(j)->update(k, data[0].toLong(), data[1].toLong(), data[2].toLong());
+                 }
+             }
          }
     }
 
@@ -425,6 +460,7 @@ void MainWindow::on_pushButtonSecret_clicked()
 {
     SecretDialog *secretDialog = new SecretDialog(this, settings->value("secret", "").toString());
     connect(secretDialog, SIGNAL(secretChanged(QString)), this, SLOT(secretChanged(QString)));
+    secretDialog->setModal(true);
     secretDialog->show();
 }
 

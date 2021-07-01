@@ -25,24 +25,31 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+    bargraph.cpp \
     listdialog.cpp \
         main.cpp \
         mainwindow.cpp \
         runguard.cpp \
         server.cpp \
-    secretdialog.cpp
+    secretdialog.cpp \
+    showtraffic.cpp \
+    slotlist.cpp
 
 HEADERS += \
+    bargraph.h \
     common.h \
     common.h \
     listdialog.h \
         mainwindow.h \
         runguard.h \
         server.h \
-    secretdialog.h
+    secretdialog.h \
+    showtraffic.h \
+    slotlist.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+        showtraffic.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

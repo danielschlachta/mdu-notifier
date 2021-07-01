@@ -3,14 +3,26 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QJsonArray>
+#include <QVector>
 
-struct ServerData
+#include "slotlist.h"
+
+class ServerData
 {
+public:
+    QString caption;
+
     bool active;
     long rxtime;
 
     long long used;
     long long limit;
+
+    QVector<SlotList *> slotlists;
+
+    explicit ServerData();
+    ~ServerData();
 };
 
 class Server : public QTcpServer
