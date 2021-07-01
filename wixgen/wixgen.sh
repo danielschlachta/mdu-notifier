@@ -3,9 +3,9 @@
 cat <<EOT
 <?xml version="1.0" encoding="windows-1252"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Name="Mobile Data Usage" Id="DDBA0377-9C6C-43A4-889B-2836EAE3D2E8" UpgradeCode="0164927C-F840-4A64-8035-4B145D7CB96A" Language="1033" Codepage="1252" Version="1.0.0" Manufacturer="Schlachta Software">
+  <Product Name="Mobile Data Usage" Id="DDBA0377-9C6C-43A4-889B-2836EAE3D2E8" UpgradeCode="0164927C-F840-4A64-8035-4B145D7CB96A" Language="1033" Codepage="1252" Version="1.0.0" Manufacturer="Daniel Schlachta">
 
-    <Package Id="*" Keywords="Installer" Description="Mobile Data Usage Installer" Comments="Tray Icon" Manufacturer="Schlachta Software" InstallerVersion="100" Languages="1033" SummaryCodepage="1252" Compressed="yes"/>
+    <Package Id="*" Keywords="Installer" Description="Mobile Data Usage Installer" Comments="Tray Icon" Manufacturer="Daniel Schlachta" InstallerVersion="100" Languages="1033" SummaryCodepage="1252" Compressed="yes"/>
 
     <Media Id="1" Cabinet="application.cab" EmbedCab="yes"/>
 
