@@ -7,9 +7,9 @@ SlotList::SlotList(int listId, int slotCount, int slotInterval, int labelCount) 
     this->labelCount = labelCount;
 }
 
-long SlotList::getMaxBytes()
+long long SlotList::getMaxBytes()
 {
-    long max = 0;
+    long long max = 0;
 
      for (int i = 0; i < size(); i++) {
          Slot *slot = &data()[i];
