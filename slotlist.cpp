@@ -32,15 +32,13 @@ Slot *SlotList::get(int index)
     return &this->data()[(currentIndex + index + 1) % this->size()];
 }
 
-void SlotList::setCurrentTime(long currentTime)
+void SlotList::setCurrentTime(long long currentTime)
 {
     this->currentTime = currentTime - (currentTime % slotInterval);
-    this->currentIndex = (int) (this->currentTime / slotInterval) % size();
-
-    qDebug("current time: %ld, current index: %d", this->currentTime, this->currentIndex);
+    this->currentIndex = static_cast<int>(this->currentTime / slotInterval) % size();
 }
 
-void SlotList::update(int slotId, long startTime, long rxBytes, long txBytes)
+void SlotList::update(int slotId, long long startTime, long long rxBytes, long long txBytes)
 {
     this->data()[slotId].startTime = startTime;
     this->data()[slotId].rxBytes = rxBytes;

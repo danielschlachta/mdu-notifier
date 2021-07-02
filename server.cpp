@@ -123,18 +123,18 @@ void Server::tcpReady()
 
                     QStringList data = card.value("data").toString().split(":");
 
-                    //long lastChange = data.value(0).toLong();
-                    long lastUpdate = data.value(1).toLong();
+                    //long long lastChange = data.value(0).toLongLong();
+                    long long lastUpdate = data.value(1).toLongLong();
                     long long current = data.value(2).toLongLong();
                     long long floor = data.value(3).toLongLong();
                     bool hasLimit = data.value(4).toStdString().compare("1") == 0;
                     long long limit = data.value(5).toLongLong();
                     /* bool hasUsedWarning = data.value(6).toStdString().compare("1") == 0;
                     long long usedWarning = data.value(7).toLongLong();
-                    long usedLastSeen = data.value(8).toLong();
+                    long long usedLastSeen = data.value(8).toLongLong();
                     bool hasRemainWarning = data.value(9).toStdString().compare("1") == 0;
                     long long remainWarning = data.value(10).toLongLong();
-                    long remainLastSeen = data.value(11).toLong(); */
+                    long long remainLastSeen = data.value(11).toLongLong(); */
 
                     serverData->rxtime = lastUpdate;
                     serverData->used = current - floor;
@@ -152,7 +152,14 @@ void Server::tcpReady()
                 QJsonArray slotlists = card.value("slots").toArray();
 
                 for (int j = 0; j < slotlists.size(); j++) {
-                    serverData->slotlists.data()[j]->update(j, 0,0,0);
+                    QJsonObject slotlist = slotlists.at(j).toObject();
+
+                    QString key = slotlist.keys()[0];
+                    QStringList keys = key.split(":");
+                    QStringList values = slotlist.value(key).toString().split(":");
+
+                    serverData->slotlists.data()[keys[0].toInt()]->update(keys[1].toInt(),
+                                values[0].toLongLong(), values[1].toLongLong(), values[2].toLongLong());
                 }
              }
         }
@@ -173,8 +180,6 @@ void Server::tcpError(QAbstractSocket::SocketError error)
         close();
         emit serverError(tcpSocket.errorString());
     }
-
-    qDebug("Remote host closed connection");
 }
 
 void Server::incomingConnection(qintptr descriptor)

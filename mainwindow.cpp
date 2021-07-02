@@ -153,6 +153,7 @@ void MainWindow::showWindow()
 void MainWindow::showTraffic()
 {
     showTrafficWindow->move(settings->value("trafficpos", QPoint(400, 250)).toPoint());
+    showTrafficWindow->resize(settings->value("trafficsize", QSize(400, 650)).toSize());
     showTrafficWindow->show();
 }
 
@@ -338,7 +339,7 @@ void MainWindow::parseReply(QNetworkReply* pReply)
              long long floor = obj.value("floor").toString().toLongLong();
 
              newData->active = false;
-             newData->rxtime = obj.value("lastused").toString().toLong();
+             newData->rxtime = obj.value("lastused").toString().toLongLong();
              newData->used = current - floor;
              newData->limit = obj.value("haslimit").toString() == "1" ? obj.value("limit").toString().toLongLong() : 0;
 
@@ -350,7 +351,7 @@ void MainWindow::parseReply(QNetworkReply* pReply)
                  for (int k = 0; k < list.size(); k++) {
                     QStringList data = list.at(k).toString().split(":");
 
-                    newData->slotlists.at(j)->update(k, data[0].toLong(), data[1].toLong(), data[2].toLong());
+                    newData->slotlists.at(j)->update(k, data[0].toLongLong(), data[1].toLongLong(), data[2].toLongLong());
                  }
              }
          }

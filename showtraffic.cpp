@@ -21,6 +21,7 @@ ShowTraffic::~ShowTraffic()
 void ShowTraffic::closeEvent(QCloseEvent *event)
 {
     settings->setValue("trafficpos", pos());
+    settings->setValue("trafficsize", size());
     hide();
     event->ignore();
 }

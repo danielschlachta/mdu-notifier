@@ -5,9 +5,9 @@
 
 struct Slot
 {
-    long startTime = 0;
-    long rxBytes = 0;
-    long txBytes = 0;
+    long long startTime = 0;
+    long long rxBytes = 0;
+    long long txBytes = 0;
 };
 
 class SlotList : public QVector<Slot>
@@ -23,8 +23,8 @@ public:
 
     long getMaxBytes();
     Slot *get(int index);
-    void setCurrentTime(long currentTime);
-    void update(int slotId, long startTime, long rxBytes, long txBytes);
+    void setCurrentTime(long long currentTime);
+    void update(int slotId, long long startTime, long long rxBytes, long long txBytes);
 };
 
 #endif // SLOTLIST_H

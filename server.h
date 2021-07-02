@@ -14,7 +14,7 @@ public:
     QString caption;
 
     bool active;
-    long rxtime;
+    long long rxtime;
 
     long long used;
     long long limit;

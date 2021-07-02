@@ -100,8 +100,8 @@ void BarGraph::paint(QPainter &painter, QPaintEvent *event)
         drawVertLine(painter, posX);
 
         long labelInterval = slotList->size() / slotList->labelCount * slotList->slotInterval;
-        long millis = slotList->currentTime - (slotList->size() - 1) * slotList->slotInterval + i * labelInterval;
-        QDateTime time = QDateTime::fromTime_t(millis / 1000);
+        long long millis = slotList->currentTime - (slotList->size() - 1) * slotList->slotInterval + i * labelInterval;
+        QDateTime time = QDateTime::fromTime_t(static_cast<uint>(millis / 1000));
         QString label = time.toString("hh:mm:ss");
 
         if (slotList->labelCount > 4)
@@ -113,7 +113,7 @@ void BarGraph::paint(QPainter &painter, QPaintEvent *event)
     int lines = 4; // excluding top
 
     while ((lines > 1) &&
-        (int) (1.8 * fontMetric->height()) > (int) (dim * (cap / lines) * factor))
+        static_cast<int>(1.8 * fontMetric->height()) > static_cast<int>(dim * (cap / lines) * factor))
         lines--;
 
     for (int l = lines, frac = 0; l > 2; l--) {
@@ -146,7 +146,7 @@ void BarGraph::paint(QPainter &painter, QPaintEvent *event)
 
         int ofs = i > 0 ? (i < slotList->size() / 4 * 3 ? 1 : 0) : -1;
 
-        int txData = (int) (slot->txBytes * factor);
+        int txData = static_cast<int>(slot->txBytes * factor);
 
         if (txData > 0) {
             int left = colWidth * i + colStep * 3 + 1 + ofs;
@@ -158,7 +158,7 @@ void BarGraph::paint(QPainter &painter, QPaintEvent *event)
             painter.fillRect(txRect, blue);
         }
 
-        int rxData = (int) (slot->rxBytes * factor);
+        int rxData = static_cast<int>(slot->rxBytes * factor);
 
         if (rxData > 0) {
             int left = colWidth * i + colStep + 1 + ofs;
