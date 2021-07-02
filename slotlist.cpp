@@ -36,6 +36,8 @@ void SlotList::setCurrentTime(long currentTime)
 {
     this->currentTime = currentTime - (currentTime % slotInterval);
     this->currentIndex = (int) (this->currentTime / slotInterval) % size();
+
+    qDebug("current time: %ld, current index: %d", this->currentTime, this->currentIndex);
 }
 
 void SlotList::update(int slotId, long startTime, long rxBytes, long txBytes)
