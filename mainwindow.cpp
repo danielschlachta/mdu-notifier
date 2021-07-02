@@ -118,7 +118,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::iconClicked(QSystemTrayIcon::ActivationReason reason)
 {
-    if (reason == QSystemTrayIcon::Trigger && !settings->value("builtin", false).toBool())
+    if (reason == QSystemTrayIcon::Trigger && showTrafficAction->isEnabled())
         showTraffic();
 }
 
@@ -140,7 +140,7 @@ void MainWindow::secretChanged(QString secret)
 void MainWindow::listItemSelected(QString serial)
 {
     this->ui->lineEditSimId->setText(serial);
-    settings->setValue("simserial", serial);
+    on_lineEditSimId_editingFinished();
 }
 
 void MainWindow::showWindow()
@@ -500,9 +500,9 @@ void MainWindow::on_spinBoxPort_valueChanged(int arg1)
 void MainWindow::on_lineEditSimId_editingFinished()
 {
     settings->setValue("simserial", ui->lineEditSimId->text());
+    sim = ui->lineEditSimId->text();
 
-    if (simIsFromPrefs)
-        sim = ui->lineEditSimId->text();
+    server.close();
 }
 
 void MainWindow::on_pushButtonList_clicked()
