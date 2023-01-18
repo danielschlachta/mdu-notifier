@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Mobile Data Usage - Traffic</string>
+   <string>Mobile Data Usage</string>
   </property>
   <property name="windowIcon">
    <iconset resource="mdu-notifier.qrc">

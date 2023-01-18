@@ -91,16 +91,19 @@ void Server::tcpReady()
         receivedData.append(data);
     }
 
+    // qDebug() << receivedData;
+
     ServerData *serverData = nullptr;
 
     if (receivedData.size() >= receivedLen) {
         receivedLen = -1;
 
-        QString response = "HTTP/1.1 200 OK\r\nDate: Tue, 29 Jun 2021 11:12:14 GMT\r\n"
-                "Server: Apache/2.4.41 (Ubuntu)\r\n";
+        QString response = "HTTP/1.1 200 OK\r\n";
 
         QJsonDocument doc = QJsonDocument::fromJson(receivedData.toUtf8().data());
         QJsonObject obj = doc.object();
+
+        // qDebug() << doc.toJson(QJsonDocument::Indented).toStdString().c_str();
 
         if (obj.value("secret").toString().compare(serverSecret) != 0) {
             response.append("Content-Length: 12\r\nConnection: close\r\n"
@@ -115,28 +118,32 @@ void Server::tcpReady()
             for (int i = 0; iStr = QString::number(i), obj.contains(iStr); i++) {
                 QJsonObject card = obj.value(iStr).toObject();
 
-                if (card.value("type").toString().compare("push") == 0 &&
-                        card.value("serial").toString().compare(serverSim) == 0) {
+                if (card.value("type").toString().compare("push") == 0) {
 
+                    if (serverData != nullptr)
+                        delete serverData;
                     serverData = new ServerData();
+
                     serverData->caption = card.value("caption").toString();
 
                     QStringList data = card.value("data").toString().split(":");
 
-                    //long long lastChange = data.value(0).toLongLong();
+                    long long lastChange = data.value(0).toLongLong();
                     long long lastUpdate = data.value(1).toLongLong();
                     long long current = data.value(2).toLongLong();
                     long long floor = data.value(3).toLongLong();
                     bool hasLimit = data.value(4).toStdString().compare("1") == 0;
                     long long limit = data.value(5).toLongLong();
-                    /* bool hasUsedWarning = data.value(6).toStdString().compare("1") == 0;
+                    bool hasUsedWarning = data.value(6).toStdString().compare("1") == 0;
                     long long usedWarning = data.value(7).toLongLong();
                     long long usedLastSeen = data.value(8).toLongLong();
                     bool hasRemainWarning = data.value(9).toStdString().compare("1") == 0;
                     long long remainWarning = data.value(10).toLongLong();
-                    long long remainLastSeen = data.value(11).toLongLong(); */
+                    long long remainLastSeen = data.value(11).toLongLong();
 
-                    serverData->rxtime = lastUpdate;
+                    serverData->lastChange = lastChange;
+                    serverData->lastUpdate = lastUpdate;
+
                     serverData->used = current - floor;
 
                     if (serverData->used < 0)
@@ -144,24 +151,45 @@ void Server::tcpReady()
 
                     if (hasLimit) {
                         serverData->limit = limit;
+                        serverData->remaining = limit - serverData->used;
 
-                    } else
+                        if (serverData->remaining < 0)
+                            serverData->remaining = 0;
+
+                    } else {
                         serverData->limit = 0;
-                 }
+                        serverData->remaining = 0;
+                    }
 
-                QJsonArray slotlists = card.value("slots").toArray();
+                    if (hasUsedWarning)
+                        serverData->usedWarning = usedWarning;
+                    else
+                        serverData->usedWarning = 0;
 
-                for (int j = 0; j < slotlists.size(); j++) {
-                    QJsonObject slotlist = slotlists.at(j).toObject();
+                    serverData->usedLastSeen = usedLastSeen;
 
-                    QString key = slotlist.keys()[0];
-                    QStringList keys = key.split(":");
-                    QStringList values = slotlist.value(key).toString().split(":");
+                    if (hasRemainWarning)
+                        serverData->remainWarning = remainWarning;
+                    else
+                        serverData->remainWarning = 0;
 
-                    serverData->slotlists.data()[keys[0].toInt()]->update(keys[1].toInt(),
-                                values[0].toLongLong(), values[1].toLongLong(), values[2].toLongLong());
+                    serverData->remainLastSeen = remainLastSeen;
+
+                    QJsonObject slotsObj = card.value("slots").toObject();
+
+                    for (int j = 0; j < serverData->slotlists.count(); j++)
+                    {
+                        for (int k = 0; k < serverData->slotlists[j]->count(); k++)
+                        {
+                            QString index = QString::number(j) + ":" + QString::number(k);
+                            QStringList values = slotsObj.value(index).toString().split(":");
+
+                            serverData->slotlists.data()[j]->update(k,
+                                        values[0].toLongLong(), values[1].toLongLong(), values[2].toLongLong());
+                        }
+                    }
                 }
-             }
+            }
         }
 
         tcpSocket.write(response.toLocal8Bit());

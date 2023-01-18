@@ -29,7 +29,7 @@ protected:
     QString sim;
     bool simIsFromPrefs = false;
 
-    long maxDelay = 10;
+    long maxDelay = 10 * 1000;
 
 private:
     Ui::MainWindow *ui;
@@ -73,19 +73,23 @@ private slots:
 
     void serverError(QString message);
 
+    void on_radioButton_clicked();
+
     void on_lineEditURL_editingFinished();
-    void on_spinBox_show_valueChanged(int arg1);
-    void on_spinBox_hide_valueChanged(int arg1);
-    void on_pushButtonClose_clicked();
-    void on_checkBoxSuppress_clicked();
     void on_pushButtonVisit_clicked();
 
-    void on_pushButtonSecret_clicked();
-    void on_radioButton_clicked();
     void on_radioButton_2_clicked();
+
     void on_spinBoxPort_valueChanged(int arg1);
+
+    void on_pushButtonSecret_clicked();
+
     void on_lineEditSimId_editingFinished();
     void on_pushButtonList_clicked();
+
+    void on_spinBox_hide_valueChanged(int arg1);
+
+    void on_pushButtonClose_clicked();
 };
 
 #endif // MAINWINDOW_H

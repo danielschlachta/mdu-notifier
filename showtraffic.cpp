@@ -10,6 +10,8 @@ ShowTraffic::ShowTraffic(QWidget *parent, QSettings *settings) :
     ui->toolBox->addItem(&bg2, "Last 120 minutes");
     ui->toolBox->addItem(&bg3, "Last 12 hours");
 
+    this->setWindowTitle("Traffic - " + this->windowTitle());
+
     this->settings = settings;
 }
 

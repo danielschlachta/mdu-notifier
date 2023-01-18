@@ -14,10 +14,19 @@ public:
     QString caption;
 
     bool active;
-    long long rxtime;
+
+    long long lastChange;
+    long long lastUpdate;
 
     long long used;
     long long limit;
+    long long remaining;
+
+    long long usedWarning;
+    long long usedLastSeen;
+
+    long long remainWarning;
+    long long remainLastSeen;
 
     QVector<SlotList *> slotlists;
 

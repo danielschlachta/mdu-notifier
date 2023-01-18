@@ -29,6 +29,8 @@ void MainWindow::init(QString simserial)
 
     ui->setupUi(this);
 
+    this->setWindowTitle("Preferences - " + this->windowTitle());
+
     ui->lineEditURL->setText(settings->value("url", tr(DEFAULT_URL)).toString());
     ui->spinBoxPort->setValue(settings->value("port", 2434).toInt());
 
@@ -51,10 +53,8 @@ void MainWindow::init(QString simserial)
         ui->pushButtonList->setEnabled(simIsFromPrefs);
     }
 
-    ui->spinBox_show->setValue(settings->value("show", 2).toInt());
     ui->spinBox_hide->setValue(settings->value("hide", 10).toInt());
-    ui->checkBoxSuppress->setCheckState(settings->value("captime", 0).toLongLong() > 0 ?
-                                            Qt::Checked : Qt::Unchecked);
+
     trayIcon = new QSystemTrayIcon(this);
     paintTrayIcon();
 
@@ -85,7 +85,6 @@ void MainWindow::init(QString simserial)
     connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
             SLOT(iconClicked(QSystemTrayIcon::ActivationReason)));
 #endif
-
 
     trayIconMenu->addAction(settingsAction);
     trayIconMenu->addAction(quitAction);
@@ -124,7 +123,7 @@ void MainWindow::iconClicked(QSystemTrayIcon::ActivationReason reason)
 
 void MainWindow::iconMessageClicked()
 {
-    ui->checkBoxSuppress->setCheckState(Qt::Checked);
+    //ui->checkBoxSuppress->setCheckState(Qt::Checked);
 }
 
 void MainWindow::dismissClicked()
@@ -230,19 +229,17 @@ void MainWindow::paintTrayIcon()
 void MainWindow::dataReceived(ServerData *data)
 {
     if (data != nullptr) {
+        long long currTime = QDateTime::currentDateTime().toTime_t() * 1000LL;
+        data->active = currTime - data->lastUpdate < maxDelay;
+
         ServerData *oldData = serverData;
         serverData = data;
 
-        if (oldData != nullptr) {
-            serverData->active = data->rxtime - oldData->rxtime < maxDelay * 1000;
+        if (oldData != nullptr)
             delete oldData;
-        } else {
-            serverData->active = true;
-        }
-    } else {
+    } else
         if (serverData != nullptr)
             serverData->active = false;
-    }
 
     paintTrayIcon();
 
@@ -267,13 +264,9 @@ void MainWindow::dataReceived(ServerData *data)
     stream1 << serverData->used / 1024 / 1024 << " MB";
 
     long long cap = serverData == nullptr ? 0 : serverData->limit / 1024 / 1024;
-    long long remaining = serverData == nullptr ? 0 : cap - serverData->used / 1024 / 1024;
-
-    if (remaining < 0)
-        remaining = 0;
 
     int remainPercent = serverData != nullptr
-            && serverData->limit > 0 ? static_cast<int>(remaining * 100 / cap) : 0;
+            && serverData->limit > 0 ? static_cast<int>(serverData->remaining * 100 / serverData->limit) : 0;
 
     if (serverData->limit > 0)
     {
@@ -282,7 +275,7 @@ void MainWindow::dataReceived(ServerData *data)
         QString status2;
         QTextStream stream2(&status2);
 
-        stream2 << remaining << " MB left" << " (" << remainPercent << "%)";
+        stream2 << serverData->remaining / 1024 / 1024 << " MB left" << " (" << remainPercent << "%)";
 
         status2Action->setText(status2);
         status2Action->setVisible(true);
@@ -296,6 +289,12 @@ void MainWindow::dataReceived(ServerData *data)
 
     status1Action->setText(status1);
     status1Action->setVisible(true);
+
+    if (serverData->usedWarning > 0 && serverData->used > serverData->usedWarning &&
+            serverData->usedLastSeen > serverData->lastChange) {
+
+
+    }
 }
 
 void MainWindow::parseReply(QNetworkReply* pReply)
@@ -339,9 +338,30 @@ void MainWindow::parseReply(QNetworkReply* pReply)
              long long floor = obj.value("floor").toString().toLongLong();
 
              newData->active = false;
-             newData->rxtime = obj.value("lastused").toString().toLongLong();
+             newData->lastChange = obj.value("lastchange").toString().toLongLong();
+             newData->lastUpdate = obj.value("lastupdate").toString().toLongLong();
              newData->used = current - floor;
-             newData->limit = obj.value("haslimit").toString() == "1" ? obj.value("limit").toString().toLongLong() : 0;
+
+             if (newData->used < 0)
+                 newData->used = 0;
+
+            if (obj.value("haslimit").toString() == "1") {
+                newData->limit = obj.value("limit").toString().toLongLong();
+                newData->remaining = newData->limit - newData->used;
+                if (newData->remaining < 0)
+                        newData->remaining = 0;
+            } else {
+                newData->limit = 0;
+                newData->remaining = 0;
+            }
+
+             newData->usedWarning = obj.value("hasusedwarning").toString() == "1" ?
+                         obj.value("usedwarning").toString().toLongLong() : 0;
+             newData->usedLastSeen = obj.value("usedlastseen").toString().toLongLong();
+
+             newData->remainWarning = obj.value("hasremainwarning").toString() == "1" ?
+                         obj.value("remainwarning").toString().toLongLong() : 0;
+             newData->remainLastSeen = obj.value("remainlastseen").toString().toLongLong();
 
              QJsonArray slotlists = obj.value("slots").toArray();
 
@@ -370,7 +390,7 @@ void MainWindow::serverError(QString message)
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-    if (event != nullptr && event->timerId() != timerId)
+    if (event == nullptr ||  event->timerId() != timerId)
         return;
 
     if (settings->value("builtin", false).toBool())
@@ -409,9 +429,9 @@ void MainWindow::timerEvent(QTimerEvent *event)
         networkAccessManager.post(request, data);
     }
 
-    if (serverData != nullptr && QDateTime::currentDateTime().secsTo(lastReception) < -maxDelay) {
+    if (serverData != nullptr && QDateTime::currentDateTime().secsTo(lastReception) * 1000 < -maxDelay) {
         serverData->active = false;
-        dataReceived(nullptr);
+        paintTrayIcon();
     }
 }
 
@@ -420,49 +440,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings->setValue("pos", pos());
     hide();
     event->ignore();
-}
-
-void MainWindow::on_lineEditURL_editingFinished()
-{
-    settings->setValue("url", ui->lineEditURL->text());
-}
-
-void MainWindow::on_spinBox_show_valueChanged(int arg1)
-{
-    settings->setValue("show", arg1);
-}
-
-void MainWindow::on_spinBox_hide_valueChanged(int arg1)
-{
-    settings->setValue("hide", arg1);
-}
-
-void MainWindow::on_checkBoxSuppress_clicked()
-{
-
-}
-
-void MainWindow::on_pushButtonClose_clicked()
-{
-    settings->setValue("pos", pos());
-    hide();
-}
-
-void MainWindow::on_pushButtonVisit_clicked()
-{
-    QString urlStr(settings->value("url", DEFAULT_URL).toString());
-    if (!urlStr.endsWith("/"))
-        urlStr += "/";
-
-    QDesktopServices::openUrl(QUrl(urlStr));
-}
-
-void MainWindow::on_pushButtonSecret_clicked()
-{
-    SecretDialog *secretDialog = new SecretDialog(this, settings->value("secret", "").toString());
-    connect(secretDialog, SIGNAL(secretChanged(QString)), this, SLOT(secretChanged(QString)));
-    secretDialog->setModal(true);
-    secretDialog->show();
 }
 
 void MainWindow::on_radioButton_clicked()
@@ -479,11 +456,32 @@ void MainWindow::on_radioButton_clicked()
     timerEvent(nullptr);
 }
 
+void MainWindow::on_lineEditURL_editingFinished()
+{
+    settings->setValue("url", ui->lineEditURL->text());
+}
+
+void MainWindow::on_pushButtonVisit_clicked()
+{
+    QString urlStr(settings->value("url", DEFAULT_URL).toString());
+    if (!urlStr.endsWith("/"))
+        urlStr += "/";
+
+    QString simId = settings->value("simserial", "").toString();
+
+    if (simId.length() > 0)
+        urlStr += "?serial=" + simId;
+
+    QDesktopServices::openUrl(QUrl(urlStr));
+}
+
 void MainWindow::on_radioButton_2_clicked()
 {
     if (ui->radioButton_2->isChecked()) {
         ui->radioButton->setChecked(false);
         ui->pushButtonList->setEnabled(false);
+        //ui->lineEditSimId->setText("");
+        //ui->lineEditSimId->setEnabled(false);
     } else {
         ui->radioButton_2->setChecked(true);
     }
@@ -495,6 +493,15 @@ void MainWindow::on_spinBoxPort_valueChanged(int arg1)
 {
     server.close();
     settings->setValue("port", arg1);
+}
+
+
+void MainWindow::on_pushButtonSecret_clicked()
+{
+    SecretDialog *secretDialog = new SecretDialog(this, settings->value("secret", "").toString());
+    connect(secretDialog, SIGNAL(secretChanged(QString)), this, SLOT(secretChanged(QString)));
+    secretDialog->setModal(true);
+    secretDialog->show();
 }
 
 void MainWindow::on_lineEditSimId_editingFinished()
@@ -523,3 +530,16 @@ void MainWindow::on_pushButtonList_clicked()
 
     networkAccessManager.post(request, data);
 }
+
+
+void MainWindow::on_spinBox_hide_valueChanged(int arg1)
+{
+    settings->setValue("hide", arg1);
+}
+
+void MainWindow::on_pushButtonClose_clicked()
+{
+    settings->setValue("pos", pos());
+    hide();
+}
+
