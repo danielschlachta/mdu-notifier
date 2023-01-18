@@ -184,7 +184,8 @@ void Server::tcpReady()
                             QString index = QString::number(j) + ":" + QString::number(k);
                             QStringList values = slotsObj.value(index).toString().split(":");
 
-                            serverData->slotlists.data()[j]->update(k,
+                            if (values.count() == 3)
+                                serverData->slotlists.data()[j]->update(k,
                                         values[0].toLongLong(), values[1].toLongLong(), values[2].toLongLong());
                         }
                     }

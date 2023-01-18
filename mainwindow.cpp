@@ -46,11 +46,15 @@ void MainWindow::init(QString simserial)
     if (settings->value("builtin", false).toBool()) {
         ui->radioButton->setChecked(false);
         ui->radioButton_2->setChecked(true);
+        ui->lineEditURL->setEnabled(false);
+        ui->pushButtonVisit->setEnabled(false);
+        ui->lineEditSimId->setEnabled(false);
         ui->pushButtonList->setEnabled(false);
     } else {
         ui->radioButton->setChecked(true);
         ui->radioButton_2->setChecked(false);
         ui->pushButtonList->setEnabled(simIsFromPrefs);
+        ui->spinBoxPort->setEnabled(false);
     }
 
     ui->spinBox_hide->setValue(settings->value("hide", 10).toInt());
@@ -446,7 +450,11 @@ void MainWindow::on_radioButton_clicked()
 {
     if (ui->radioButton->isChecked()) {
         ui->radioButton_2->setChecked(false);
+        ui->lineEditURL->setEnabled(true);
+        ui->pushButtonVisit->setEnabled(true);
         ui->pushButtonList->setEnabled(simIsFromPrefs);
+        ui->lineEditSimId->setEnabled(true);
+        ui->spinBoxPort->setEnabled(false);
     } else {
         ui->radioButton->setChecked(true);
     }
@@ -479,9 +487,11 @@ void MainWindow::on_radioButton_2_clicked()
 {
     if (ui->radioButton_2->isChecked()) {
         ui->radioButton->setChecked(false);
+        ui->lineEditURL->setEnabled(false);
+        ui->pushButtonVisit->setEnabled(false);
         ui->pushButtonList->setEnabled(false);
-        //ui->lineEditSimId->setText("");
-        //ui->lineEditSimId->setEnabled(false);
+        ui->lineEditSimId->setEnabled(false);
+        ui->spinBoxPort->setEnabled(true);
     } else {
         ui->radioButton_2->setChecked(true);
     }
